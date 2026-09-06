@@ -7,6 +7,7 @@ from pathlib import Path
 from botocore.exceptions import BotoCoreError, ClientError, NoCredentialsError
 from strands import Agent
 from strands.models.bedrock import BedrockModel
+from strands.handlers.callback_handler import PrintingCallbackHandler, null_callback_handler
 
 if __package__ is None or __package__ == "":
     sys.path.append(str(Path(__file__).resolve().parents[1]))
@@ -68,17 +69,21 @@ def _print_section(title: str, payload: dict[str, object]) -> None:
         print(f"  {key}: {value}")
 
 
-def build_agent() -> Agent:
+def build_agent(*, verbose_output: bool = False) -> Agent:
+    callback_handler = (
+        PrintingCallbackHandler(verbose_tool_use=True) if verbose_output else null_callback_handler
+    )
     return Agent(
         model=BedrockModel(model_id=MODEL_ID, region_name=BEDROCK_REGION, streaming=False),
         system_prompt=SYSTEM_PROMPT,
         structured_output_model=Mission,
+        callback_handler=callback_handler,
     )
 
 
 def run_mission_to_coalition_demo(mission: Mission | None = None) -> None:
     if mission is None:
-        agent = build_agent()
+        agent = build_agent(verbose_output=True)
         logger.info("Sending mission request: %s", PROMPT)
 
         try:

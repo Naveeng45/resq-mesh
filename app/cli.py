@@ -25,6 +25,27 @@ def _join(values: list[str]) -> str:
     return ", ".join(values) if values else "none"
 
 
+def _final_verdict(
+    review_status: str,
+    coalition_feasible: bool | None,
+    include_resilience: bool,
+) -> str:
+    if review_status != "ready":
+        return "needs more facts"
+    if coalition_feasible is False:
+        return "no feasible coalition"
+    if include_resilience:
+        return "ready with resilience check"
+    return "ready to deploy"
+
+
+def _mission_card(mission: Mission, review_status: str, coalition: object | None) -> str:
+    coalition_text = "not selected" if coalition is None else "selected"
+    destination = mission.destination or "unknown destination"
+    incident = mission.incident_type or "unknown incident"
+    return f"{destination} | {incident} | review={review_status} | coalition={coalition_text}"
+
+
 def _prompt_for_query(value: str | None) -> str:
     if value:
         return value.strip()
@@ -72,8 +93,8 @@ def _prompt_for_mission_clarification(mission: Mission) -> Mission:
 
 
 def extract_mission(query: str, *, allow_demo_fallback: bool = True) -> Mission:
-    agent = build_agent()
-    logger.info("Sending CLI query: %s", query)
+    agent = build_agent(verbose_output=False)
+    logger.debug("Sending CLI query: %s", query)
 
     try:
         result = agent(query)
@@ -93,12 +114,9 @@ def extract_mission(query: str, *, allow_demo_fallback: bool = True) -> Mission:
     return result.structured_output
 
 
-def run_cli(query: str) -> None:
+def run_cli(query: str, *, include_resilience: bool = False) -> None:
     mission = extract_mission(query)
     review = review_mission(mission)
-    if review.missing_critical_facts:
-        mission = _prompt_for_mission_clarification(mission)
-        review = review_mission(mission)
     capability_assessment = derive_required_capabilities(mission)
 
     coalition = None
@@ -111,7 +129,7 @@ def run_cli(query: str) -> None:
         )
 
     report = None
-    if coalition is not None and coalition.feasible:
+    if include_resilience and coalition is not None and coalition.feasible:
         report = replan(
             CoalitionRequest(
                 required_capabilities=capability_assessment.rule_required_capability_codes,
@@ -122,23 +140,35 @@ def run_cli(query: str) -> None:
         )
 
     print("=== RESQ-Mesh CLI ===")
+    print("Mission card:", _mission_card(mission, review.status, coalition))
     print(
         "Mission:",
         f"{mission.destination or 'unknown'} | {mission.incident_type or 'unknown'} | requirements={_join(mission.requirements)}",
     )
     print(f"Review: {review.status}")
+    if review.missing_critical_facts:
+        print("Missing facts:", _join(review.missing_critical_facts))
     print("Capabilities:", _join([capability.code for capability in capability_assessment.required_capabilities]))
 
     if coalition is None:
-        print("Coalition: skipped because the mission needs human review")
+        if review.missing_critical_facts or capability_assessment.needs_human_review:
+            print("Coalition: skipped because the mission needs human review")
+        else:
+            print("Coalition: skipped because no feasible coalition was found")
     else:
         print(
             "Coalition:",
             f"{_join(coalition.selected_resource_ids)} | total_capacity={coalition.total_capacity} | {coalition.solver_status}",
         )
 
+    if not include_resilience:
+        print("Resilience: disabled (pass --replan to simulate resource loss)")
+        print("Final verdict:", _final_verdict(review.status, coalition.feasible if coalition else None, False))
+        return
+
     if report is None:
         print("Resilience: skipped because no feasible baseline coalition was available")
+        print("Final verdict:", _final_verdict(review.status, coalition.feasible if coalition else None, True))
         return
 
     print("Overall:", report.overall_classification)
@@ -147,6 +177,7 @@ def run_cli(query: str) -> None:
         f"recoverable={_join(report.recoverable_failure_ids)} | mission_breaking={_join(report.mission_breaking_failure_ids)}",
     )
     print("Summary:", report.summary)
+    print("Final verdict:", _final_verdict(review.status, coalition.feasible if coalition else None, True))
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -156,15 +187,20 @@ def build_parser() -> argparse.ArgumentParser:
         nargs="?",
         help="Incident description to analyze. If omitted, you will be prompted.",
     )
+    parser.add_argument(
+        "--replan",
+        action="store_true",
+        help="Run the counterfactual failure and replan analysis after the coalition is built.",
+    )
     return parser
 
 
 def main() -> None:
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+    logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(name)s: %(message)s")
     parser = build_parser()
     args = parser.parse_args()
     query = _prompt_for_query(args.query)
-    run_cli(query)
+    run_cli(query, include_resilience=args.replan)
 
 
 if __name__ == "__main__":
