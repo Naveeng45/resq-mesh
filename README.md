@@ -1,5 +1,85 @@
 # resq-mesh
 
+# Lesson 08: Hypergraph Model
+
+This lesson makes coalition structure explicit.
+
+Why this belongs here:
+
+- Lesson 06 showed how the solver picks a feasible coalition.
+- Lesson 07 showed how to test that coalition under explicit resource removal.
+- Lesson 08 adds the structural layer: some capabilities only appear when a specific combination of resources exists together.
+
+### What we build
+
+- a small hypergraph of resources and coalition units
+- one emergent capability that no individual resource owns
+- a solver-to-hyperedge match for the demo mission
+- a simple structural metric view using projected connectivity and `lambda2`
+- a clear note that `lambda2` is structural, not a replacement for explicit re-solving
+
+### Files in this lesson
+
+- `app/hypergraph.py` - hypergraph models, structural metrics, and the demo report
+- `app/hypergraph_agent.py` - lesson demo entrypoint
+- `tests/test_hypergraph.py` - tests for emergent capabilities and graph connectivity
+
+### Concept in simple terms
+
+A graph connects pairs of things.
+A hypergraph connects groups of things.
+
+That matters when a capability only appears when several resources operate together, because no single node in the graph can represent the full coalition.
+
+### What happens technically
+
+1. Resources stay as nodes.
+2. Valid coalition units become hyperedges.
+3. Each hyperedge can carry an emergent capability label.
+4. The solver still picks a feasible coalition deterministically.
+5. The selected coalition is matched back to a hyperedge if the resource sets align.
+6. We project the hypergraph into a pairwise graph to compute structural metrics like connected components and `lambda2`.
+7. We keep operational criticality separate by continuing to rely on explicit resource removal and re-solving from Lesson 07.
+
+### Assumptions
+
+- The hypergraph is synthetic and small on purpose.
+- `lambda2` is useful as a structural signal, but it does not tell us which exact resource failure will break a mission.
+- A coalition hyperedge represents a valid multi-resource unit, not a replacement for the solver.
+- Emergent capabilities are deterministic labels attached to valid combinations.
+
+### Run the lesson tests
+
+```bash
+cd hack-projects/resq-mesh
+python -m unittest tests.test_hypergraph -v
+```
+
+### Run the demo
+
+```bash
+cd hack-projects/resq-mesh
+.venv/bin/python app/hypergraph_agent.py
+```
+
+### Expected output
+
+You should see:
+
+- the mission and solver-selected coalition
+- the HyperNetX node and hyperedge lists
+- a coalition hyperedge that maps to the selected solver result
+- an emergent capability like `flood_evacuation` that no single resource owns
+- a small connectivity summary with component count and `lambda2`
+- a note that structural metrics do not replace explicit failure simulation
+
+### If something breaks
+
+- If `hypernetx` cannot import, reinstall dependencies from `requirements.txt`.
+- If the solver result does not match a hyperedge, check that the resource IDs in `build_demo_resources()` and `build_demo_hyperedges()` line up exactly.
+- If `lambda2` is `0.0` in the main demo, check whether the projection graph is disconnected.
+- If the test for the disconnected graph fails, make sure the projection graph contains an isolated node.
+
 ## Lesson 07: Failure and Replan
 
 This lesson makes the plan survive resource loss.
