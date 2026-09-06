@@ -1,0 +1,98 @@
+[
+  {
+    "id": "valid_flood_response",
+    "input": "Flood waters have isolated Willow Creek. Send the boat and medical team to the marina by 2026-09-06T18:00:00-07:00. Roads remain blocked.",
+    "mission": {
+      "destination": "Willow Creek",
+      "deadline": "2026-09-06T18:00:00-07:00",
+      "incident_type": "flood",
+      "requirements": [
+        "boat",
+        "medical team"
+      ],
+      "constraints": [
+        "roads remain blocked"
+      ]
+    },
+    "review": {
+      "status": "ready",
+      "missing_critical_facts": []
+    }
+  },
+  {
+    "id": "ambiguous_destination",
+    "input": "A flood somewhere near the river needs help tonight.",
+    "mission": {
+      "destination": null,
+      "deadline": null,
+      "incident_type": "flood",
+      "requirements": [],
+      "constraints": []
+    },
+    "review": {
+      "status": "needs_clarification",
+      "missing_critical_facts": [
+        "destination",
+        "deadline"
+      ]
+    }
+  },
+  {
+    "id": "incomplete_deadline",
+    "input": "The east clinic is flooded. Move a truck and medical team there.",
+    "mission": {
+      "destination": "east clinic",
+      "deadline": null,
+      "incident_type": "flood",
+      "requirements": [
+        "truck",
+        "medical team"
+      ],
+      "constraints": []
+    },
+    "review": {
+      "status": "needs_clarification",
+      "missing_critical_facts": [
+        "deadline"
+      ]
+    }
+  },
+  {
+    "id": "missing_incident_type",
+    "input": "We need help at Harbor Point by 2026-09-06T12:00:00-07:00.",
+    "mission": {
+      "destination": "Harbor Point",
+      "deadline": "2026-09-06T12:00:00-07:00",
+      "incident_type": null,
+      "requirements": [],
+      "constraints": []
+    },
+    "review": {
+      "status": "needs_clarification",
+      "missing_critical_facts": [
+        "incident_type"
+      ]
+    }
+  },
+  {
+    "id": "ready_with_constraints",
+    "input": "Send a boat to Pine Dock by 2026-09-06T09:00:00-07:00; floodwater is rising and the road is blocked.",
+    "mission": {
+      "destination": "Pine Dock",
+      "deadline": "2026-09-06T09:00:00-07:00",
+      "incident_type": "flood",
+      "requirements": [
+        "boat"
+      ],
+      "constraints": [
+        "floodwater is rising",
+        "road is blocked"
+      ]
+    },
+    "review": {
+      "status": "ready",
+      "missing_critical_facts": []
+    }
+  }
+]
+
