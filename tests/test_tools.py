@@ -1,113 +1,98 @@
+from __future__ import annotations
+
 import unittest
 
-from app.resources import get_resources_by_required_capability, list_available_resources
+from app.resources import (
+    get_resources_by_required_capability,
+    list_available_resources,
+    list_recruit_candidates,
+    list_resources,
+)
 from app.tools import (
+    assess_incident,
     get_available_resources,
     get_resources_by_required_capability as get_resources_by_required_capability_tool,
 )
 
+RECRUIT_ONLY_IDS = {"jordan", "marcus", "tom"}
 
-class GetAvailableResourcesTest(unittest.TestCase):
-    def test_returns_only_available_resources(self) -> None:
-        self.assertEqual(
-            get_available_resources(),
-            {
-                "resources": [
-                    {
-                        "id": "truck-01",
-                        "name": "Heavy Rescue Truck",
-                        "category": "ground transport",
-                        "location": "Albany Depot",
-                        "status": "available",
-                        "availability": True,
-                        "reliability": 0.96,
-                        "capacity": 1200,
-                        "capacity_unit": "kg",
-                        "capability_codes": ["road_transport"],
-                        "synthetic_data": True,
-                    },
-                    {
-                        "id": "drone-02",
-                        "name": "High-Water Drone",
-                        "category": "aerial support",
-                        "location": "Airfield Hangar",
-                        "status": "available",
-                        "availability": True,
-                        "reliability": 0.89,
-                        "capacity": 2,
-                        "capacity_unit": "people",
-                        "capability_codes": ["flood_access"],
-                        "synthetic_data": True,
-                    },
-                    {
-                        "id": "med-team-alpha",
-                        "name": "Medical Team Alpha",
-                        "category": "field care",
-                        "location": "North Clinic",
-                        "status": "available",
-                        "availability": True,
-                        "reliability": 0.91,
-                        "capacity": 6,
-                        "capacity_unit": "patients",
-                        "capability_codes": ["field_triage"],
-                        "synthetic_data": True,
-                    },
-                    {
-                        "id": "satcom-01",
-                        "name": "Satellite Comms Kit",
-                        "category": "communications",
-                        "location": "Command Post",
-                        "status": "available",
-                        "availability": True,
-                        "reliability": 0.86,
-                        "capacity": None,
-                        "capacity_unit": None,
-                        "capability_codes": ["communications"],
-                        "synthetic_data": True,
-                    },
-                ]
-            },
+
+class AvailableResourceTest(unittest.TestCase):
+    def test_returns_only_available_opted_in_records(self) -> None:
+        payload = get_available_resources()
+
+        self.assertTrue(payload["resources"])
+        for resource in payload["resources"]:
+            self.assertTrue(resource["availability"])
+            self.assertEqual(resource["status"], "available")
+            self.assertTrue(resource["opted_in"])
+            self.assertTrue(resource["synthetic_data"])
+
+    def test_recruit_only_volunteers_are_never_offered_to_the_solver(self) -> None:
+        """The consent boundary: CP-SAT may only see people who opted in."""
+
+        available_ids = {resource.id for resource in list_available_resources()}
+
+        self.assertTrue(RECRUIT_ONLY_IDS.isdisjoint(available_ids))
+        self.assertIn("maya", available_ids)
+
+    def test_recruit_only_volunteers_still_exist_for_a_human_to_ask(self) -> None:
+        all_ids = {resource.id for resource in list_resources()}
+        self.assertTrue(RECRUIT_ONLY_IDS.issubset(all_ids))
+
+        candidates = list_recruit_candidates("van_certified_driver")
+        candidate_ids = {resource.id for resource in candidates}
+
+        self.assertIn("jordan", candidate_ids)
+        self.assertNotIn("maya", candidate_ids)
+        for candidate in candidates:
+            self.assertFalse(candidate.opted_in)
+
+
+class CapabilityLookupTest(unittest.TestCase):
+    def test_lookup_accepts_coordinator_language(self) -> None:
+        payload = get_resources_by_required_capability_tool("van driver")
+        ids = [resource["id"] for resource in payload["resources"]]
+
+        self.assertEqual(payload["required_capability"], "van driver")
+        self.assertIn("maya", ids)
+        self.assertNotIn("jordan", ids)
+
+    def test_lookup_excludes_people_who_did_not_opt_in(self) -> None:
+        drivers = get_resources_by_required_capability("van_certified_driver")
+        ids = {resource.id for resource in drivers}
+
+        self.assertIn("luis", ids)
+        self.assertTrue(RECRUIT_ONLY_IDS.isdisjoint(ids))
+
+    def test_unknown_capability_returns_nothing(self) -> None:
+        self.assertEqual(get_resources_by_required_capability("forklift"), [])
+
+
+class AssessIncidentToolTest(unittest.TestCase):
+    def test_tool_returns_a_decision_not_a_suggestion(self) -> None:
+        decision = assess_incident(
+            destination="Riverside Community Meals — Eastside",
+            incident_type="thursday_distribution",
+            requirements=["van driver", "packer", "site lead"],
         )
 
-    def test_available_catalog_excludes_unavailable_resources(self) -> None:
-        resources = list_available_resources()
-
-        self.assertEqual([resource.id for resource in resources], [
-            "truck-01",
-            "drone-02",
-            "med-team-alpha",
-            "satcom-01",
-        ])
-        self.assertNotIn("boat-07", [resource.id for resource in resources])
-
-    def test_tool_returns_available_resources_for_capability(self) -> None:
+        self.assertIn(decision["verdict"], {"ready to deploy", "ready but fragile"})
+        self.assertTrue(decision["feasible"])
+        self.assertTrue(decision["selected_resource_ids"])
+        self.assertEqual(decision["missing_capabilities"], [])
         self.assertEqual(
-            get_resources_by_required_capability_tool("flood access"),
-            {
-                "required_capability": "flood access",
-                "resources": [
-                    {
-                        "id": "drone-02",
-                        "name": "High-Water Drone",
-                        "category": "aerial support",
-                        "location": "Airfield Hangar",
-                        "status": "available",
-                        "availability": True,
-                        "reliability": 0.89,
-                        "capacity": 2,
-                        "capacity_unit": "people",
-                        "capability_codes": ["flood_access"],
-                        "synthetic_data": True,
-                    }
-                ],
-            },
+            set(decision["answers"].keys()), {"CAN", "HOW", "WHAT IF", "WHAT IS MISSING"}
         )
 
-    def test_unavailable_resources_are_excluded_from_capability_lookup(self) -> None:
-        resources = get_resources_by_required_capability("flood access")
+    def test_coverage_type_outside_doctrine_is_escalated_not_planned(self) -> None:
+        decision = assess_incident(
+            destination="Riverside Community Meals — Eastside",
+            incident_type="holiday_popup",
+        )
 
-        self.assertEqual([resource.id for resource in resources], ["drone-02"])
-        self.assertNotIn("boat-07", [resource.id for resource in resources])
+        self.assertEqual(decision["verdict"], "needs human review")
+        self.assertEqual(decision["selected_resource_ids"], [])
 
 
 if __name__ == "__main__":

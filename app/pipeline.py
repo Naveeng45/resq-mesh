@@ -14,9 +14,9 @@ def _join(values: list[str]) -> str:
 
 
 def run_full_demo() -> None:
-    """Run the full RESQ-Mesh demo in a concise presentation format."""
+    """Run the full MealMesh demo in a concise presentation format."""
 
-    print("=== RESQ-Mesh End-to-End Demo ===")
+    print("=== MealMesh End-to-End Demo ===")
 
     print("\nPhase 1: Mission to Coalition")
     mission = build_demo_mission()
@@ -25,7 +25,7 @@ def run_full_demo() -> None:
     coalition = solve_resource_coalition(
         CoalitionRequest(
             required_capabilities=capabilities.rule_required_capability_codes,
-            minimum_total_capacity=8,
+            minimum_total_capacity=0,
         )
     )
     print(
@@ -39,18 +39,18 @@ def run_full_demo() -> None:
         f"{_join(coalition.selected_resource_ids)} | total_capacity={coalition.total_capacity} | {coalition.solver_status}",
     )
 
-    print("\nPhase 2: Failure and Replan")
+    print("\nPhase 2: Cancellation and Replan")
     resilience_mission = Mission(
-        destination="Willow Creek",
-        deadline="2026-09-06T18:00:00-07:00",
-        incident_type="flood",
-        requirements=["boat", "medical team", "communications"],
-        constraints=["roads remain blocked"],
+        destination="Riverside Community Meals — Eastside",
+        deadline="2026-09-10T16:00:00-07:00",
+        incident_type="thursday_distribution",
+        requirements=["van driver", "packer", "site lead"],
+        constraints=["van certification required to drive"],
     )
     resilience_capabilities = derive_required_capabilities(resilience_mission)
     resilience_request = CoalitionRequest(
         required_capabilities=resilience_capabilities.rule_required_capability_codes,
-        minimum_total_capacity=9,
+        minimum_total_capacity=0,
     )
     resources = build_demo_resources()
     baseline = solve_resource_coalition(resilience_request, resources=resources)

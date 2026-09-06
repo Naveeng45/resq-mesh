@@ -1,2 +1,2 @@
-"""RESQ-Mesh lesson modules."""
+"""MealMesh application modules."""
 

@@ -1,0 +1,6 @@
+# AgentCore deployment dependencies (in addition to the app's requirements.txt).
+# Install both when building the runtime image:
+#   pip install -r requirements.txt -r deploy/agentcore/requirements-agentcore.txt
+-r ../../requirements.txt
+bedrock-agentcore
+bedrock-agentcore-starter-toolkit

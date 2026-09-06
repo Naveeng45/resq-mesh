@@ -12,7 +12,10 @@ from app.solver import CoalitionRequest, solve_resource_coalition
 
 logger = logging.getLogger(__name__)
 
-PROMPT = "Flood waters have isolated Willow Creek. Select the smallest feasible coalition with flood access and field triage for at least 8 total capacity."
+PROMPT = (
+    "Thursday Eastside needs coverage. Select the smallest feasible team that provides "
+    "a van-certified driver, a food handler, and a site keyholder."
+)
 
 
 def _print_section(title: str, value: object) -> None:
@@ -22,13 +25,13 @@ def _print_section(title: str, value: object) -> None:
 
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
-    logger.info("Running deterministic coalition solver for lesson 06")
-    print("=== RESQ-Mesh Lesson 06 Demo ===")
+    logger.info("Running deterministic coalition solver")
+    print("=== MealMesh: CP-SAT picks the team ===")
     print(f"Request: {PROMPT}")
 
     request = CoalitionRequest(
-        required_capabilities=["flood_access", "field_triage"],
-        minimum_total_capacity=8,
+        required_capabilities=["van_certified_driver", "food_handler", "site_keyholder"],
+        minimum_total_capacity=0,
     )
     solution = solve_resource_coalition(request)
 

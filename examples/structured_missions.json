@@ -1,17 +1,18 @@
 [
   {
-    "id": "valid_flood_response",
-    "input": "Flood waters have isolated Willow Creek. Send the boat and medical team to the marina by 2026-09-06T18:00:00-07:00. Roads remain blocked.",
+    "id": "valid_thursday_eastside",
+    "input": "We need Thursday coverage at Riverside Community Meals — Eastside by 2026-09-10T16:00:00-07:00: a van driver, a packer, and a site lead. Whoever drives has to be van certified.",
     "mission": {
-      "destination": "Willow Creek",
-      "deadline": "2026-09-06T18:00:00-07:00",
-      "incident_type": "flood",
+      "destination": "Riverside Community Meals — Eastside",
+      "deadline": "2026-09-10T16:00:00-07:00",
+      "incident_type": "thursday_distribution",
       "requirements": [
-        "boat",
-        "medical team"
+        "van driver",
+        "packer",
+        "site lead"
       ],
       "constraints": [
-        "roads remain blocked"
+        "van certification required to drive"
       ]
     },
     "review": {
@@ -20,49 +21,46 @@
     }
   },
   {
-    "id": "ambiguous_destination",
-    "input": "A flood somewhere near the river needs help tonight.",
+    "id": "ambiguous_site",
+    "input": "Someone dropped out of the Thursday run and we need a replacement.",
     "mission": {
       "destination": null,
       "deadline": null,
-      "incident_type": "flood",
+      "incident_type": "thursday_distribution",
       "requirements": [],
       "constraints": []
     },
     "review": {
       "status": "needs_clarification",
       "missing_critical_facts": [
-        "destination",
-        "deadline"
+        "destination"
       ]
     }
   },
   {
     "id": "incomplete_deadline",
-    "input": "The east clinic is flooded. Move a truck and medical team there.",
+    "input": "Harbor still needs a packer and a site lead for Thursday.",
     "mission": {
-      "destination": "east clinic",
+      "destination": "Riverside Community Meals — Harbor",
       "deadline": null,
-      "incident_type": "flood",
+      "incident_type": "thursday_distribution",
       "requirements": [
-        "truck",
-        "medical team"
+        "packer",
+        "site lead"
       ],
       "constraints": []
     },
     "review": {
-      "status": "needs_clarification",
-      "missing_critical_facts": [
-        "deadline"
-      ]
+      "status": "ready",
+      "missing_critical_facts": []
     }
   },
   {
-    "id": "missing_incident_type",
-    "input": "We need help at Harbor Point by 2026-09-06T12:00:00-07:00.",
+    "id": "missing_coverage_window",
+    "input": "Can anyone help out at West End at 5pm?",
     "mission": {
-      "destination": "Harbor Point",
-      "deadline": "2026-09-06T12:00:00-07:00",
+      "destination": "Riverside Community Meals — West End",
+      "deadline": "2026-09-10T17:00:00-07:00",
       "incident_type": null,
       "requirements": [],
       "constraints": []
@@ -76,17 +74,17 @@
   },
   {
     "id": "ready_with_constraints",
-    "input": "Send a boat to Pine Dock by 2026-09-06T09:00:00-07:00; floodwater is rising and the road is blocked.",
+    "input": "Maya can't make Thursday at Eastside. We still need a van-certified driver by 4pm and the church van is the only one free.",
     "mission": {
-      "destination": "Pine Dock",
-      "deadline": "2026-09-06T09:00:00-07:00",
-      "incident_type": "flood",
+      "destination": "Riverside Community Meals — Eastside",
+      "deadline": "2026-09-10T16:00:00-07:00",
+      "incident_type": "thursday_distribution",
       "requirements": [
-        "boat"
+        "van driver"
       ],
       "constraints": [
-        "floodwater is rising",
-        "road is blocked"
+        "Maya is unavailable",
+        "only the church van is free"
       ]
     },
     "review": {
@@ -95,4 +93,3 @@
     }
   }
 ]
-

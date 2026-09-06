@@ -4,3 +4,13 @@ pandas<3
 networkx>=3.3
 hypernetx==2.4.3
 strands-agents
+
+# Dashboard API (app/api/server.py) and the local demo server
+fastapi>=0.115
+uvicorn>=0.31
+
+# Deterministic settings loading (app/config.py)
+pydantic-settings>=2.5.2
+
+# Test suite
+pytest>=8.3

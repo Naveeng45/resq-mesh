@@ -21,98 +21,74 @@ def _print_section(title: str, value: object) -> None:
     print(value)
 
 
+def _volunteer(
+    resource_id: str,
+    name: str,
+    category: str,
+    capability_code: str,
+    location: str,
+    org: str,
+    reliability: float,
+) -> Resource:
+    return Resource(
+        id=resource_id,
+        name=name,
+        category=category,
+        location=location,
+        status="available",
+        availability=True,
+        reliability=reliability,
+        capacity=1,
+        capacity_unit="site",
+        capability_codes=[capability_code],
+        opted_in=True,
+        org=org,
+    )
+
+
 def build_demo_resources() -> list[Resource]:
+    """A Thursday roster with a backup driver and packer, but only one keyholder.
+
+    That asymmetry is the point: losing the driver is recoverable, losing the
+    keyholder closes the site.
+    """
+
     return [
-        Resource(
-            id="flood-boat",
-            name="Flood Boat",
-            category="water rescue",
-            location="Dock A",
-            status="available",
-            availability=True,
-            reliability=0.93,
-            capacity=4,
-            capacity_unit="people",
-            capability_codes=["flood_access"],
-        ),
-        Resource(
-            id="med-team",
-            name="Medical Team",
-            category="field care",
-            location="Clinic",
-            status="available",
-            availability=True,
-            reliability=0.96,
-            capacity=4,
-            capacity_unit="patients",
-            capability_codes=["field_triage"],
-        ),
-        Resource(
-            id="comms-kit",
-            name="Communications Kit",
-            category="communications",
-            location="Command Post",
-            status="available",
-            availability=True,
-            reliability=0.91,
-            capacity=1,
-            capacity_unit="units",
-            capability_codes=["communications"],
-        ),
-        Resource(
-            id="backup-boat",
-            name="Backup Flood Boat",
-            category="water rescue",
-            location="Dock B",
-            status="available",
-            availability=True,
-            reliability=0.88,
-            capacity=4,
-            capacity_unit="people",
-            capability_codes=["flood_access"],
-        ),
-        Resource(
-            id="backup-med",
-            name="Backup Medical Team",
-            category="field care",
-            location="Clinic B",
-            status="available",
-            availability=True,
-            reliability=0.89,
-            capacity=4,
-            capacity_unit="patients",
-            capability_codes=["field_triage"],
-        ),
+        _volunteer("maya", "Maya Chen", "driver", "van_certified_driver", "Eastside", "Riverside Church", 0.96),
+        _volunteer("priya", "Priya Shah", "food handler", "food_handler", "Eastside", "Riverside Church", 0.95),
+        _volunteer("elena", "Elena Brooks", "site keyholder", "site_keyholder", "Eastside", "Riverside Church", 0.97),
+        _volunteer("luis", "Luis Okonkwo", "driver", "van_certified_driver", "Food bank bench", "Second Harvest", 0.93),
+        _volunteer("sam", "Sam Ortiz", "food handler", "food_handler", "Church bench", "Riverside Church", 0.92),
     ]
 
 
 def run_resilience_demo(*, include_summary: bool = True) -> ResilienceReport:
     mission = Mission(
-        destination="Willow Creek",
-        deadline="2026-09-06T18:00:00-07:00",
-        incident_type="flood",
-        requirements=["boat", "medical team", "communications"],
-        constraints=["roads remain blocked"],
+        destination="Riverside Community Meals — Eastside",
+        deadline="2026-09-10T16:00:00-07:00",
+        incident_type="thursday_distribution",
+        requirements=["van driver", "packer", "site lead"],
+        constraints=["van certification required to drive"],
     )
     capability_assessment = derive_required_capabilities(mission)
     resources = build_demo_resources()
     baseline = solve_resource_coalition(
         CoalitionRequest(
             required_capabilities=capability_assessment.rule_required_capability_codes,
-            minimum_total_capacity=9,
+            minimum_total_capacity=0,
         ),
         resources=resources,
     )
     report = replan(
         CoalitionRequest(
             required_capabilities=capability_assessment.rule_required_capability_codes,
-            minimum_total_capacity=9,
+            minimum_total_capacity=0,
         ),
         baseline,
         resources=resources,
     )
 
-    print("=== RESQ-Mesh Lesson 07 Demo ===")
+    print("=== MealMesh: what one cancellation would do ===")
     _print_section("1) Baseline coalition", baseline.model_dump())
     _print_section("2) Resilience report", report.model_dump())
     if include_summary:

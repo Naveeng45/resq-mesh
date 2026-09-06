@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="990" height="540" viewBox="0 0 990 540" font-family="system-ui, -apple-system, Segoe UI, sans-serif">
+  <defs>
+    <marker id="arw" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#7d7b74"/>
+    </marker>
+    <linearGradient id="band" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#241f4d"/><stop offset="1" stop-color="#1a1633"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="990" height="540" fill="#0d0d0d"/>
+
+  <!-- title -->
+  <text x="40" y="32" fill="#ffffff" font-size="20" font-weight="700">RESQ-Mesh — Architecture</text>
+  <text x="330" y="32" fill="#898781" font-size="12">LLM understands · rules validate · math decides · sentinel watches · human approves</text>
+
+  <!-- SENTINEL enclosing loop -->
+  <rect x="24" y="48" width="942" height="342" rx="14" fill="none" stroke="#9085e9" stroke-width="1.5" stroke-dasharray="6 5" opacity="0.75"/>
+  <rect x="24" y="48" width="942" height="50" rx="14" fill="url(#band)" stroke="#9085e9" stroke-width="1.5"/>
+  <text x="44" y="72" fill="#b7afff" font-size="14" font-weight="700">🛰 AUTONOMOUS SENTINEL</text>
+  <text x="44" y="88" fill="#c3c2b7" font-size="11.5">Re-runs the whole pipeline on every world-state change · stays silent · auto-recomposes · escalates to a human only on a genuine decision</text>
+
+  <!-- ROW A (left to right) -->
+  <!-- B1 Incident -->
+  <rect x="40" y="140" width="150" height="64" rx="10" fill="#1a1a19" stroke="#ffffff24"/>
+  <text x="115" y="168" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="700">Incident</text>
+  <text x="115" y="187" text-anchor="middle" fill="#898781" font-size="10.5">natural language</text>
+  <!-- B2 Guardrails -->
+  <rect x="230" y="140" width="150" height="64" rx="10" fill="#1a1a19" stroke="#ffffff24"/>
+  <text x="305" y="168" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="700">Guardrails</text>
+  <text x="305" y="187" text-anchor="middle" fill="#898781" font-size="10.5">injection screen · bound</text>
+  <!-- B3 LLM Extract -->
+  <rect x="420" y="140" width="150" height="64" rx="10" fill="#1b1633" stroke="#9085e9"/>
+  <text x="495" y="164" text-anchor="middle" fill="#b7afff" font-size="13" font-weight="700">LLM Extract</text>
+  <text x="495" y="181" text-anchor="middle" fill="#c3c2b7" font-size="10.5">Strands + Bedrock</text>
+  <text x="495" y="196" text-anchor="middle" fill="#9085e9" font-size="9.5">facts only · probabilistic</text>
+  <!-- B4 HITL -->
+  <rect x="610" y="140" width="150" height="64" rx="10" fill="#1a1a19" stroke="#ffffff24"/>
+  <text x="685" y="168" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="700">HITL Review</text>
+  <text x="685" y="187" text-anchor="middle" fill="#898781" font-size="10.5">missing facts? ask human</text>
+  <!-- B5 Capabilities -->
+  <rect x="800" y="140" width="150" height="64" rx="10" fill="#1a1a19" stroke="#ffffff24"/>
+  <text x="875" y="168" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="700">Capability Rules</text>
+  <text x="875" y="187" text-anchor="middle" fill="#898781" font-size="10.5">facts → required caps</text>
+
+  <!-- ROW B (right to left) -->
+  <!-- B6 CP-SAT (decision authority) -->
+  <rect x="800" y="300" width="150" height="64" rx="10" fill="#11250f" stroke="#0ca30c" stroke-width="1.5"/>
+  <text x="875" y="324" text-anchor="middle" fill="#5fd35f" font-size="13" font-weight="700">CP-SAT Solver</text>
+  <text x="875" y="341" text-anchor="middle" fill="#c3c2b7" font-size="10.5">OR-Tools</text>
+  <text x="875" y="356" text-anchor="middle" fill="#0ca30c" font-size="9" font-weight="700">DECISION AUTHORITY</text>
+  <!-- B7 Resilience -->
+  <rect x="610" y="300" width="150" height="64" rx="10" fill="#1a1a19" stroke="#ffffff24"/>
+  <text x="685" y="328" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="700">Resilience</text>
+  <text x="685" y="347" text-anchor="middle" fill="#898781" font-size="10.5">remove &amp; re-solve</text>
+  <!-- B8 Hypergraph -->
+  <rect x="420" y="300" width="150" height="64" rx="10" fill="#1a1a19" stroke="#ffffff24"/>
+  <text x="495" y="328" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="700">Hypergraph</text>
+  <text x="495" y="347" text-anchor="middle" fill="#898781" font-size="10.5">emergent capability</text>
+  <!-- B9 Answers + Verdict (wide) -->
+  <rect x="40" y="300" width="340" height="64" rx="10" fill="#1a1a19" stroke="#3987e5"/>
+  <text x="210" y="326" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="700">Answers + Verdict</text>
+  <text x="210" y="347" text-anchor="middle" fill="#8ab4f5" font-size="10.5">CAN · HOW · WHAT IF · WHAT IS MISSING</text>
+
+  <!-- arrows: row A -->
+  <line x1="190" y1="172" x2="226" y2="172" stroke="#7d7b74" stroke-width="2" marker-end="url(#arw)"/>
+  <line x1="380" y1="172" x2="416" y2="172" stroke="#7d7b74" stroke-width="2" marker-end="url(#arw)"/>
+  <line x1="570" y1="172" x2="606" y2="172" stroke="#7d7b74" stroke-width="2" marker-end="url(#arw)"/>
+  <line x1="760" y1="172" x2="796" y2="172" stroke="#7d7b74" stroke-width="2" marker-end="url(#arw)"/>
+  <!-- turn down -->
+  <line x1="875" y1="206" x2="875" y2="296" stroke="#7d7b74" stroke-width="2" marker-end="url(#arw)"/>
+  <!-- arrows: row B (right to left) -->
+  <line x1="800" y1="332" x2="764" y2="332" stroke="#7d7b74" stroke-width="2" marker-end="url(#arw)"/>
+  <line x1="610" y1="332" x2="574" y2="332" stroke="#7d7b74" stroke-width="2" marker-end="url(#arw)"/>
+  <line x1="420" y1="332" x2="384" y2="332" stroke="#7d7b74" stroke-width="2" marker-end="url(#arw)"/>
+
+  <!-- legend -->
+  <circle cx="48" cy="424" r="6" fill="#9085e9"/>
+  <text x="60" y="428" fill="#c3c2b7" font-size="11.5">probabilistic — the LLM extracts facts and never allocates resources</text>
+  <circle cx="48" cy="448" r="6" fill="#0ca30c"/>
+  <text x="60" y="452" fill="#c3c2b7" font-size="11.5">deterministic — the CP-SAT solver owns every allocation decision; every step after extraction is unit-tested</text>
+
+  <!-- footer -->
+  <text x="40" y="498" fill="#898781" font-size="11">All operational data is simulated. The sentinel keeps humans out of routine changes and in the loop for real decisions.</text>
+</svg>

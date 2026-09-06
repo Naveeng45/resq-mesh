@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import sys
 from pathlib import Path
 
@@ -21,27 +22,53 @@ logger = logging.getLogger(__name__)
 MODEL_ID = "us.amazon.nova-lite-v1:0"
 BEDROCK_REGION = "us-east-1"
 PROMPT = (
-    "Flood waters have isolated Willow Creek. Send the boat and medical team "
-    "to the marina by 2026-09-06T18:00:00-07:00. Roads remain blocked."
+    "We need Thursday coverage at Riverside Community Meals — Eastside by "
+    "2026-09-10T16:00:00-07:00: a van driver, a packer, and a site lead. "
+    "Whoever drives has to be van certified."
 )
 SYSTEM_PROMPT = """
-You extract incident facts from a natural-language request.
+You extract coverage facts from a natural-language request.
 Only capture facts explicitly stated by the user.
 If a critical fact is missing or vague, set it to null instead of inventing it.
-Do not infer operational doctrine, do not choose resources, and do not optimize a response.
+Do not infer which roles are required, do not choose volunteers, and do not plan coverage.
+Never invent a volunteer, a site, or an organization that the user did not mention.
 Return only the structured facts.
 """.strip()
 
+# Corporate proxies intercept TLS, which breaks both Bedrock calls and localhost
+# traffic. urllib folds NO_PROXY and no_proxy into one lower-cased dict, so both
+# spellings must agree or the escalation webhook can silently take the proxy.
+_AWS_PROXY_BYPASS_ENTRIES: tuple[str, ...] = (".amazonaws.com", "127.0.0.1", "localhost")
+
+
+def ensure_aws_proxy_bypass() -> None:
+    """Add AWS and loopback hosts to NO_PROXY without dropping existing entries."""
+
+    existing: list[str] = []
+    for variable in ("NO_PROXY", "no_proxy"):
+        for entry in os.environ.get(variable, "").split(","):
+            cleaned = entry.strip()
+            if cleaned and cleaned not in existing:
+                existing.append(cleaned)
+
+    for entry in _AWS_PROXY_BYPASS_ENTRIES:
+        if entry not in existing:
+            existing.append(entry)
+
+    merged = ",".join(existing)
+    os.environ["NO_PROXY"] = merged
+    os.environ["no_proxy"] = merged
+
 
 def build_demo_mission() -> Mission:
-    """Provide a local fallback so the Lesson 05 -> Lesson 06 demo still runs offline."""
+    """Provide a local fallback so the demo still runs with no Bedrock access."""
 
     return Mission(
-        destination="Willow Creek",
-        deadline="2026-09-06T18:00:00-07:00",
-        incident_type="flood",
-        requirements=["boat", "medical team"],
-        constraints=["roads remain blocked"],
+        destination="Riverside Community Meals — Eastside",
+        deadline="2026-09-10T16:00:00-07:00",
+        incident_type="thursday_distribution",
+        requirements=["van driver", "packer", "site lead"],
+        constraints=["van certification required to drive"],
     )
 
 
@@ -117,7 +144,7 @@ def run_mission_to_coalition_demo(mission: Mission | None = None) -> None:
         )
 
     logger.info("Mission status: %s", review.status)
-    print("\n=== RESQ-Mesh Lesson 05 to Lesson 06 Demo ===")
+    print("\n=== MealMesh: extracted facts to coverage plan ===")
     _print_section("1) Extracted facts", mission.model_dump())
     _print_section("2) Mission review", review.model_dump())
     _print_section("3) Rule-derived capabilities", capability_assessment.model_dump())

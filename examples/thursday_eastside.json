@@ -1,0 +1,12 @@
+{
+  "simulated": true,
+  "destination": "Riverside Community Meals — Eastside",
+  "incident_type": "thursday_distribution",
+  "deadline": "2026-09-10T16:00:00-07:00",
+  "requirements": ["van driver", "packer", "site lead"],
+  "constraints": ["van certification required to drive"],
+  "assigned": ["maya", "priya", "elena"],
+  "opted_in_bench": ["luis", "sam", "noah", "avery", "riley"],
+  "recruit_only": ["jordan"],
+  "organizations": ["Riverside Church", "Second Harvest"]
+}

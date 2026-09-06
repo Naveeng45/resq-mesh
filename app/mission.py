@@ -7,25 +7,28 @@ from pydantic import ConfigDict, Field
 
 from app.pydantic_compat import CompatBaseModel
 
-CRITICAL_MISSION_FIELDS: tuple[str, ...] = ("destination", "deadline", "incident_type")
+# A coverage window is plannable without an explicit clock time: "Thursday
+# Eastside" is enough to derive roles and solve. A missing site or missing
+# coverage type is not, so only those two block the pipeline.
+CRITICAL_MISSION_FIELDS: tuple[str, ...] = ("destination", "incident_type")
 
 
 class Mission(CompatBaseModel):
-    """Structured incident facts extracted from a natural-language request."""
+    """Structured coverage facts extracted from a natural-language request."""
 
     model_config = ConfigDict(extra="forbid")
 
     destination: str | None = Field(
         default=None,
-        description="Destination or affected location mentioned by the user. Use null if missing.",
+        description="Meal site mentioned by the user. Use null if missing.",
     )
     deadline: datetime | None = Field(
         default=None,
-        description="Explicit deadline or target time in ISO 8601 form. Use null if missing.",
+        description="Explicit service time in ISO 8601 form. Use null if missing.",
     )
     incident_type: str | None = Field(
         default=None,
-        description="Incident type stated by the user, such as flood. Use null if missing.",
+        description="Coverage type stated by the user, such as thursday_distribution. Use null if missing.",
     )
     requirements: list[str] = Field(
         default_factory=list,

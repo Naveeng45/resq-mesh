@@ -17,10 +17,13 @@ from app.resources import Resource
 from app.solver import CoalitionRequest, solve_resource_coalition
 
 
-class HypergraphLessonTest(unittest.TestCase):
+class HypergraphTest(unittest.TestCase):
     def test_solver_coalition_maps_to_a_hyperedge(self) -> None:
         resources = build_demo_resources()
-        request = CoalitionRequest(required_capabilities=["flood_access", "field_triage"], minimum_total_capacity=8)
+        request = CoalitionRequest(
+            required_capabilities=["van_certified_driver", "food_handler", "site_keyholder"],
+            minimum_total_capacity=0,
+        )
         solution = solve_resource_coalition(request, resources=resources)
         hyperedges = build_demo_hyperedges()
 
@@ -28,10 +31,12 @@ class HypergraphLessonTest(unittest.TestCase):
 
         self.assertTrue(solution.feasible)
         self.assertIsNotNone(selected_hyperedge)
-        self.assertEqual(selected_hyperedge.id, "flood_evacuation_team")
-        self.assertEqual(selected_hyperedge.resource_ids, ["flood-boat", "med-team"])
+        self.assertEqual(selected_hyperedge.id, "eastside_meal_delivery")
+        self.assertEqual(selected_hyperedge.resource_ids, ["maya", "priya", "elena"])
 
     def test_report_exposes_an_emergent_capability_owned_by_no_single_node(self) -> None:
+        """Serving a meal is a property of the group, not of any volunteer."""
+
         report = build_demo_report()
 
         emergent_codes = [capability.code for capability in report.emergent_capabilities]
@@ -41,9 +46,9 @@ class HypergraphLessonTest(unittest.TestCase):
             for capability_code in resource.capability_codes
         }
 
-        self.assertIn("flood_evacuation", emergent_codes)
-        self.assertNotIn("flood_evacuation", owned_codes)
-        self.assertEqual(report.selected_hyperedge.id if report.selected_hyperedge else None, "flood_evacuation_team")
+        self.assertIn("meal_delivery", emergent_codes)
+        self.assertNotIn("meal_delivery", owned_codes)
+        self.assertEqual(report.selected_hyperedge.id if report.selected_hyperedge else None, "eastside_meal_delivery")
         self.assertGreater(report.metrics.lambda2, 0.0)
         self.assertEqual(report.metrics.connected_components, 1)
 

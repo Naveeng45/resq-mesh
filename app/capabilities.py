@@ -9,7 +9,7 @@ from app.pydantic_compat import CompatBaseModel
 
 
 class CapabilityDefinition(CompatBaseModel):
-    """A capability in the lesson's small deterministic ontology."""
+    """A capability in the small deterministic meal-program ontology."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -19,7 +19,7 @@ class CapabilityDefinition(CompatBaseModel):
 
 
 class RequiredCapability(CompatBaseModel):
-    """A capability required for a mission, derived by deterministic rules."""
+    """A capability required for a coverage window, derived by deterministic rules."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -47,56 +47,61 @@ def _normalize_text(value: str) -> str:
     return " ".join(value.strip().lower().split())
 
 
+# Three roles, because a meal site opens only when all three are present: someone
+# who may legally drive the van, someone who may legally handle the food, and
+# someone who can unlock the building.
 CAPABILITY_ONTOLOGY: tuple[CapabilityDefinition, ...] = (
     CapabilityDefinition(
-        code="flood_access",
-        label="Flood Access",
-        description="Reach isolated areas or operate where roads are blocked by water.",
+        code="van_certified_driver",
+        label="Van-certified driver",
+        description="Cleared to drive the food-bank van to a distribution site.",
     ),
     CapabilityDefinition(
-        code="field_triage",
-        label="Field Triage",
-        description="Assess and stabilize patients on site.",
+        code="food_handler",
+        label="Food handler",
+        description="Certified to pack and serve food safely at a site.",
     ),
     CapabilityDefinition(
-        code="road_transport",
-        label="Road Transport",
-        description="Move people or supplies by road when routes are passable.",
-    ),
-    CapabilityDefinition(
-        code="communications",
-        label="Communications",
-        description="Provide emergency communication support.",
+        code="site_keyholder",
+        label="Site keyholder",
+        description="Holds building access to open, host, and close a site.",
     ),
 )
 
 CAPABILITY_SYNONYMS: dict[str, tuple[str, ...]] = {
-    "flood_access": (
-        "boat",
-        "watercraft",
-        "flood boat",
-        "flood access",
-        "water access",
+    "van_certified_driver": (
+        "driver",
+        "van driver",
+        "van",
+        "van cert",
+        "van certified",
+        "van-certified driver",
+        "delivery driver",
     ),
-    "field_triage": (
-        "medical team",
-        "medic",
-        "medical",
-        "triage",
-        "patient care",
+    "food_handler": (
+        "packer",
+        "food handler",
+        "food safety",
+        "server",
+        "kitchen help",
+        "meal packer",
     ),
-    "road_transport": (
-        "truck",
-        "vehicle",
-        "ground transport",
-        "road transport",
+    "site_keyholder": (
+        "site lead",
+        "keyholder",
+        "key holder",
+        "site keyholder",
+        "site host",
+        "building access",
     ),
-    "communications": (
-        "radio",
-        "comms",
-        "communications",
-        "satcom",
-    ),
+}
+
+# Every coverage type this program runs needs all three roles. Doctrine is a
+# lookup table on purpose: a coordinator can read it, and so can a judge.
+INCIDENT_CAPABILITY_DEFAULTS: dict[str, tuple[str, ...]] = {
+    "thursday_distribution": ("van_certified_driver", "food_handler", "site_keyholder"),
+    "meal_service": ("van_certified_driver", "food_handler", "site_keyholder"),
+    "pantry": ("van_certified_driver", "food_handler", "site_keyholder"),
 }
 
 
@@ -107,7 +112,7 @@ def list_capabilities() -> list[CapabilityDefinition]:
 
 
 def resolve_capability_code(text: str) -> str | None:
-    """Map user language to an ontology code when the match is exact enough."""
+    """Map coordinator language to an ontology code when the match is exact enough."""
 
     normalized = _normalize_text(text)
     for capability in CAPABILITY_ONTOLOGY:
@@ -165,91 +170,54 @@ def _requested_capability_codes(mission: Mission) -> list[str]:
 
 
 def derive_required_capabilities(mission: Mission) -> CapabilityAssessment:
-    """Turn extracted facts into mission requirements using deterministic rules."""
+    """Turn extracted coverage facts into required roles using deterministic rules.
+
+    The language model never reaches this function's output path: it supplies
+    facts, and these rules decide which roles a site needs. Anything the rules
+    cannot anchor is flagged for human review instead of guessed.
+    """
 
     required: list[RequiredCapability] = []
     review_reasons: list[str] = []
 
-    flood_signals: list[str] = []
-    if mission.incident_type and _normalize_text(mission.incident_type) == "flood":
-        flood_signals.append(f"incident_type={mission.incident_type}")
-    for fact in (mission.constraints + mission.requirements):
-        if _contains_any(
-            fact,
-            (
-                "flood",
-                "floodwater",
-                "flood water",
-                "waterlogged",
-                "isolated",
-                "blocked road",
-                "roads blocked",
-                "road blocked",
-                "boat",
-                "watercraft",
-            ),
-        ):
-            flood_signals.append(fact)
-    if flood_signals:
-        flood_confidence = 0.95 if any("boat" in _normalize_text(fact) for fact in mission.requirements) else 0.72
+    coverage_type = _normalize_text(mission.incident_type or "")
+    doctrine_codes = INCIDENT_CAPABILITY_DEFAULTS.get(coverage_type, ())
+    for code in doctrine_codes:
         _add_required_capability(
             required,
-            "flood_access",
-            "Flood or water blockage signals indicate a need for access to isolated terrain.",
-            flood_confidence,
-            flood_signals,
+            code,
+            f"Every {coverage_type.replace('_', ' ')} needs this role to open the site.",
+            0.9,
+            [f"incident_type={mission.incident_type}"],
         )
 
-    if any(
-        _contains_any(
-            fact,
-            (
-                "medical team",
-                "medic",
-                "medical",
-                "triage",
-                "patient",
-                "patients",
-                "casualty",
-                "clinic",
-            ),
-        )
-        for fact in mission.requirements
-    ):
-        _add_required_capability(
-            required,
-            "field_triage",
-            "The user explicitly asked for medical support.",
-            0.95,
-            [fact for fact in mission.requirements if _contains_any(fact, ("medical", "triage", "patient", "clinic"))],
-        )
-
-    if any(
-        _contains_any(fact, ("truck", "vehicle", "ground transport", "road transport"))
-        for fact in mission.requirements
-    ):
-        _add_required_capability(
-            required,
-            "road_transport",
-            "The user explicitly asked for road-based transport.",
-            0.95,
-            [fact for fact in mission.requirements if _contains_any(fact, ("truck", "vehicle", "ground transport", "road transport"))],
-        )
-
-    if any(_contains_any(fact, ("radio", "comms", "communications", "satcom")) for fact in mission.requirements):
-        _add_required_capability(
-            required,
-            "communications",
-            "The user explicitly asked for communications support.",
-            0.95,
-            [fact for fact in mission.requirements if _contains_any(fact, ("radio", "comms", "communications", "satcom"))],
-        )
+    # An explicitly named role is a stronger signal than doctrine alone.
+    for code, synonyms in CAPABILITY_SYNONYMS.items():
+        matching_facts = [
+            fact for fact in mission.requirements if _contains_any(fact, synonyms)
+        ]
+        if matching_facts:
+            _add_required_capability(
+                required,
+                code,
+                "The coordinator explicitly asked for this role.",
+                0.95,
+                matching_facts,
+            )
 
     requested_codes = _requested_capability_codes(mission)
+    # Keep required roles in ontology order so "what is missing" reads the same
+    # way every time (driver, then handler, then keyholder).
+    order = {capability.code: index for index, capability in enumerate(CAPABILITY_ONTOLOGY)}
+    required.sort(key=lambda capability: order[capability.code])
     rule_codes = [capability.code for capability in required]
 
     if mission.incident_type is None:
-        review_reasons.append("incident_type is missing, so the rules cannot anchor the response.")
+        review_reasons.append("incident_type is missing, so the rules cannot anchor the coverage window.")
+    elif not doctrine_codes:
+        review_reasons.append(
+            f"Coverage type '{mission.incident_type}' is not in deterministic doctrine."
+        )
 
     if not required:
         review_reasons.append("No capability rule matched the extracted facts.")

@@ -10,7 +10,7 @@ if [[ ! -x "$PYTHON" ]]; then
   exit 1
 fi
 
-echo "=== RESQ-Mesh full validation ==="
+echo "=== MealMesh full validation ==="
 echo
 echo "[1/2] Running full app smoke test"
 "$PYTHON" "$ROOT_DIR/app/agent.py"

@@ -14,7 +14,7 @@ from app.capabilities import derive_required_capabilities
 from app.mission import Mission, review_mission
 from app.mission_agent import build_agent, build_demo_mission
 from app.resilience import replan
-from app.resources import list_resources
+from app.resources import list_available_resources
 from app.solver import CoalitionRequest, solve_resource_coalition
 
 
@@ -41,8 +41,8 @@ def _final_verdict(
 
 def _mission_card(mission: Mission, review_status: str, coalition: object | None) -> str:
     coalition_text = "not selected" if coalition is None else "selected"
-    destination = mission.destination or "unknown destination"
-    incident = mission.incident_type or "unknown incident"
+    destination = mission.destination or "unknown site"
+    incident = mission.incident_type or "unknown coverage type"
     return f"{destination} | {incident} | review={review_status} | coalition={coalition_text}"
 
 
@@ -51,7 +51,7 @@ def _prompt_for_query(value: str | None) -> str:
         return value.strip()
 
     try:
-        query = input("Describe the incident: ").strip()
+        query = input("Describe the coverage you need: ").strip()
     except EOFError as exc:  # pragma: no cover - interactive fallback
         raise SystemExit("No query provided.") from exc
 
@@ -68,9 +68,9 @@ def _prompt_for_mission_clarification(mission: Mission) -> Mission:
     print("I need one or two missing facts before I can plan:")
     updated_data = mission.model_dump()
     prompts = {
-        "destination": "What destination or affected location should I use?",
-        "deadline": "What is the deadline or target time?",
-        "incident_type": "What type of incident is this?",
+        "destination": "Which meal site should I plan for?",
+        "deadline": "What time does the site need to be covered?",
+        "incident_type": "What kind of coverage is this (for example thursday_distribution)?",
     }
 
     for field_name in review.missing_critical_facts:
@@ -124,8 +124,9 @@ def run_cli(query: str, *, include_resilience: bool = False) -> None:
         coalition = solve_resource_coalition(
             CoalitionRequest(
                 required_capabilities=capability_assessment.rule_required_capability_codes,
-                minimum_total_capacity=8,
-            )
+                minimum_total_capacity=0,
+            ),
+            resources=list_available_resources(),
         )
 
     report = None
@@ -133,13 +134,13 @@ def run_cli(query: str, *, include_resilience: bool = False) -> None:
         report = replan(
             CoalitionRequest(
                 required_capabilities=capability_assessment.rule_required_capability_codes,
-                minimum_total_capacity=9,
+                minimum_total_capacity=0,
             ),
             coalition,
-            resources=list_resources(),
+            resources=list_available_resources(),
         )
 
-    print("=== RESQ-Mesh CLI ===")
+    print("=== MealMesh CLI ===")
     print("Mission card:", _mission_card(mission, review.status, coalition))
     print(
         "Mission:",
@@ -181,11 +182,11 @@ def run_cli(query: str, *, include_resilience: bool = False) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Run the RESQ-Mesh CLI demo.")
+    parser = argparse.ArgumentParser(description="Run the MealMesh CLI demo.")
     parser.add_argument(
         "query",
         nargs="?",
-        help="Incident description to analyze. If omitted, you will be prompted.",
+        help="Coverage request to analyze. If omitted, you will be prompted.",
     )
     parser.add_argument(
         "--replan",

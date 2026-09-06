@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MealMesh — Community Meal Coverage</title>
+  <link rel="stylesheet" href="/static/vendor/leaflet.css" />
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">◈</div>
+      <div>
+        <h1>MealMesh</h1>
+        <p class="tagline">Community meal coverage · <span class="sim">SIMULATED DATA</span></p>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button id="sentinelBtn" class="btn btn-sentinel" type="button">🍲 Silent Deputy</button>
+      <div class="verdict" id="verdict" data-state="muted">
+        <span class="verdict-label">Verdict</span>
+        <span class="verdict-value" id="verdictValue">—</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- LEFT: controls + answers -->
+    <section class="panel col-left">
+      <div class="card banner" id="reviewBanner" hidden>
+        <div class="banner-title" id="bannerTitle">⚠ Human review required</div>
+        <ul class="banner-list" id="bannerList"></ul>
+        <div class="banner-hint" id="bannerHint"></div>
+      </div>
+      <div class="card">
+        <h2>Coverage window</h2>
+        <label class="field">
+          <span>Meal site</span>
+          <select id="presetSelect"></select>
+        </label>
+        <label class="field">
+          <span>Or describe a cancellation (natural language → Bedrock)</span>
+          <textarea id="nlQuery" rows="3" placeholder="Maya can't make Thursday at Eastside."></textarea>
+        </label>
+        <div class="row">
+          <button id="extractBtn" class="btn">Extract &amp; Plan (LLM)</button>
+        </div>
+        <label class="field">
+          <span>Additional capacity floor: <b id="capVal">0</b></span>
+          <input type="range" id="capSlider" min="0" max="10" value="0" />
+        </label>
+        <div class="row">
+          <button id="resetBtn" class="btn btn-ghost">Reset failures</button>
+        </div>
+        <p class="mission-line" id="missionLine"></p>
+        <p class="msg" id="msg"></p>
+      </div>
+
+      <div class="card">
+        <h2>Volunteer roster <span class="sub" id="rosterScope">SIMULATED · 3 partner orgs</span></h2>
+        <p class="roster-hint">
+          MealMesh may silently fill a seat only from the <b>opted-in bench</b>.
+          <b>Recruit-only</b> people are suggestions for you to ask — the agent never assigns them.
+        </p>
+        <div class="roster" id="roster"></div>
+      </div>
+
+      <div class="card">
+        <h2>Ask the Advisor <span class="sub">Strands agent · live AWS</span></h2>
+        <label class="field">
+          <span>Natural-language question → tool-calling agent</span>
+          <textarea id="advisorQ" rows="2" placeholder="What single cancellation would leave Eastside uncovered?"></textarea>
+        </label>
+        <div class="row">
+          <button id="advisorBtn" class="btn">Ask</button>
+        </div>
+        <p class="advisor-answer" id="advisorA"></p>
+        <p class="advisor-tools" id="advisorTools"></p>
+      </div>
+
+      <div class="card answers">
+        <h2>Answers</h2>
+        <div class="answer" id="ans-can" data-state="info"><div class="a-q">CAN?</div><div class="a-a">—</div></div>
+        <div class="answer" id="ans-how" data-state="info"><div class="a-q">HOW?</div><div class="a-a">—</div></div>
+        <div class="answer" id="ans-whatif" data-state="info"><div class="a-q">WHAT IF?</div><div class="a-a">—</div></div>
+        <div class="answer" id="ans-missing" data-state="info"><div class="a-q">WHAT IS MISSING?</div><div class="a-a">—</div></div>
+      </div>
+    </section>
+
+    <!-- CENTER: map -->
+    <section class="panel col-map">
+      <div id="map"></div>
+      <div class="map-vignette" aria-hidden="true"></div>
+      <div class="map-hud" id="mapHud">
+        <div class="map-hud-region" id="mapRegion"></div>
+        <div class="map-hud-live"><span class="live-dot"></span>COVERAGE WATCH</div>
+      </div>
+      <div class="map-status" id="mapStatus">
+        <div class="ms-dest">
+          <span class="ms-k">Target</span>
+          <span class="ms-v" id="msDest">—</span>
+        </div>
+        <div class="ms-chip" id="msChip" data-state="muted">STANDBY</div>
+        <div class="ms-meta" id="msMeta">Select a mission</div>
+      </div>
+      <div class="map-hint">Click a volunteer to cancel → coverage recomputes live</div>
+      <div class="map-legend" id="legend"></div>
+    </section>
+
+    <!-- RIGHT: flow + resilience + hypergraph -->
+    <section class="panel col-right">
+      <div class="card">
+        <h2>Pipeline flow</h2>
+        <div class="flow" id="flow"></div>
+      </div>
+      <div class="card">
+        <h2>Resilience <span class="sub">counterfactual single-loss</span></h2>
+        <div class="chips" id="resilience"><div class="empty">—</div></div>
+      </div>
+      <div class="card grow">
+        <h2>Capability hypergraph <span class="sub">coalitions &amp; emergent capability</span></h2>
+        <div id="hypergraph"></div>
+        <div class="hg-legend" id="hgLegend">
+          <span><i style="background:#3987e5"></i>selected</span>
+          <span><i style="background:#199e70"></i>coalition unit</span>
+          <span><i style="background:#d03b3b"></i>failed</span>
+          <span><i style="background:#898781"></i>available</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Sentinel overlay: the autonomous background-monitoring showcase -->
+  <div class="sentinel-overlay" id="sentinelOverlay" hidden>
+    <div class="sentinel-modal" role="dialog" aria-modal="true" aria-label="MealMesh Silent Deputy">
+      <header class="sentinel-head">
+        <div>
+          <h2>🍲 MealMesh Silent Deputy <span class="theme-tag">Agents for Humans</span></h2>
+          <p>Restaffs from the opted-in bench. The coordinator hears only when a meal site would go uncovered.</p>
+          <p class="sentinel-why">
+            A language model only reads the messages. A CP-SAT solver picks every person — and only from
+            volunteers who opted in, so nobody is auto-assigned who did not agree to be.
+          </p>
+        </div>
+        <button class="sentinel-close" id="sentinelClose" type="button" aria-label="Close">✕</button>
+      </header>
+
+      <div class="sentinel-mission" id="sentinelMission"></div>
+
+      <div class="sentinel-controls">
+        <button class="btn" id="sentinelPlay" type="button">▶ Play timeline</button>
+        <button class="btn btn-ghost" id="sentinelStep" type="button">Step ▸</button>
+        <button class="btn btn-ghost" id="sentinelReset" type="button">↺ Reset</button>
+        <div class="sentinel-tally" id="sentinelTally">
+          <span class="t-item"><b id="tAuto">0</b> handled autonomously</span>
+          <span class="t-item t-esc"><b id="tEsc">0</b> escalated to a human</span>
+        </div>
+      </div>
+
+      <div class="sentinel-policy">
+        <span><i class="pd silent"></i>silent</span>
+        <span><i class="pd auto"></i>auto-recomposed</span>
+        <span><i class="pd improved"></i>improved</span>
+        <span><i class="pd resolved"></i>resolved</span>
+        <span><i class="pd escalated"></i>decision needed</span>
+        <span class="sentinel-route" id="sentinelRoute"></span>
+      </div>
+
+      <div class="sentinel-timeline" id="sentinelTimeline"></div>
+    </div>
+  </div>
+
+  <script src="/static/vendor/leaflet.js"></script>
+  <script src="/static/vendor/cytoscape.min.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>

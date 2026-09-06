@@ -81,57 +81,67 @@ class HypergraphReport(CompatBaseModel):
 
 
 def build_demo_resources() -> list[Resource]:
-    """Create a tiny deterministic catalog for the hypergraph lesson."""
+    """Create a tiny deterministic catalog: one volunteer per required role.
+
+    Deliberately minimal, so the resilience layer has no backups to find and the
+    demo shows what "one cancellation closes the site" looks like.
+    """
 
     return [
         Resource(
-            id="flood-boat",
-            name="Flood Boat",
-            category="water rescue",
-            location="Dock A",
-            status="available",
-            availability=True,
-            reliability=0.93,
-            capacity=4,
-            capacity_unit="people",
-            capability_codes=["flood_access"],
-        ),
-        Resource(
-            id="med-team",
-            name="Medical Team",
-            category="field care",
-            location="Clinic",
+            id="maya",
+            name="Maya Chen",
+            category="driver",
+            location="Eastside",
             status="available",
             availability=True,
             reliability=0.96,
-            capacity=4,
-            capacity_unit="patients",
-            capability_codes=["field_triage"],
+            capacity=1,
+            capacity_unit="site",
+            capability_codes=["van_certified_driver"],
+            opted_in=True,
+            org="Riverside Church",
         ),
         Resource(
-            id="comms-kit",
-            name="Communications Kit",
-            category="communications",
-            location="Command Post",
+            id="priya",
+            name="Priya Shah",
+            category="food handler",
+            location="Eastside",
             status="available",
             availability=True,
-            reliability=0.91,
+            reliability=0.95,
             capacity=1,
-            capacity_unit="units",
-            capability_codes=["communications"],
+            capacity_unit="site",
+            capability_codes=["food_handler"],
+            opted_in=True,
+            org="Riverside Church",
+        ),
+        Resource(
+            id="elena",
+            name="Elena Brooks",
+            category="site keyholder",
+            location="Eastside",
+            status="available",
+            availability=True,
+            reliability=0.97,
+            capacity=1,
+            capacity_unit="site",
+            capability_codes=["site_keyholder"],
+            opted_in=True,
+            org="Riverside Church",
         ),
     ]
 
 
 def build_demo_mission() -> Mission:
-    """Provide a concrete flood mission for the lesson walkthrough."""
+    """Provide a concrete Thursday coverage window for the walkthrough."""
 
     return Mission(
-        destination="Willow Creek",
-        deadline="2026-09-06T18:00:00-07:00",
-        incident_type="flood",
-        requirements=["boat", "medical team"],
-        constraints=["roads remain blocked"],
+        destination="Riverside Community Meals — Eastside",
+        deadline="2026-09-10T16:00:00-07:00",
+        incident_type="thursday_distribution",
+        requirements=["van driver", "packer", "site lead"],
+        constraints=["van certification required to drive"],
     )
 
 
@@ -140,27 +150,15 @@ def build_demo_hyperedges() -> list[CoalitionHyperedge]:
 
     return [
         CoalitionHyperedge(
-            id="flood_evacuation_team",
-            mission_id="willow_creek_flood",
-            mission_label="Willow Creek flood response",
-            resource_ids=["flood-boat", "med-team"],
-            emergent_capability_code="flood_evacuation",
-            emergent_capability_label="Flood Evacuation",
+            id="eastside_meal_delivery",
+            mission_id="thursday_eastside",
+            mission_label="Thursday Eastside distribution",
+            resource_ids=["maya", "priya", "elena"],
+            emergent_capability_code="meal_delivery",
+            emergent_capability_label="Meal delivery",
             explanation=(
-                "The boat reaches stranded people and the medical team stabilizes them; "
-                "neither resource alone can perform the full evacuation task."
-            ),
-        ),
-        CoalitionHyperedge(
-            id="medical_command_cell",
-            mission_id="willow_creek_flood",
-            mission_label="Willow Creek flood response",
-            resource_ids=["med-team", "comms-kit"],
-            emergent_capability_code="medical_command",
-            emergent_capability_label="Medical Command Cell",
-            explanation=(
-                "Medical triage plus communications creates a coordination unit that no "
-                "single node owns on its own."
+                "A van-certified driver, a food handler, and a site keyholder together can "
+                "open and run Eastside; no one of them can serve a meal alone."
             ),
         ),
     ]
@@ -243,16 +241,19 @@ def build_emergent_capabilities(
     return emergent_capabilities
 
 
-def build_demo_report() -> HypergraphReport:
-    """Run the lesson demo and package the structural results."""
+def build_hypergraph_report(
+    mission: Mission,
+    request: CoalitionRequest,
+    selected_solution: CoalitionSolution,
+    resources: list[Resource],
+    hyperedges: list[CoalitionHyperedge],
+) -> HypergraphReport:
+    """Project an already-solved coalition onto the coalition hypergraph.
 
-    mission = build_demo_mission()
-    resources = build_demo_resources()
-    hyperedges = build_demo_hyperedges()
-    request = CoalitionRequest(required_capabilities=["flood_access", "field_triage"], minimum_total_capacity=8)
-    selected_solution = solve_resource_coalition(request, resources=resources)
-    if not selected_solution.feasible:
-        raise ValueError("The demo coalition should be feasible.")
+    Representation only: the solver has already chosen the team, and this layer
+    explains the choice (which coalition unit it is, which capability only exists
+    because the group exists). It never changes the assignment.
+    """
 
     hypergraph = build_hypernetx_hypergraph(hyperedges)
     projection_graph = build_projection_graph(resources, hyperedges)
@@ -291,16 +292,33 @@ def build_demo_report() -> HypergraphReport:
     )
 
 
+def build_demo_report() -> HypergraphReport:
+    """Run the demo and package the structural results."""
+
+    mission = build_demo_mission()
+    resources = build_demo_resources()
+    hyperedges = build_demo_hyperedges()
+    request = CoalitionRequest(
+        required_capabilities=["van_certified_driver", "food_handler", "site_keyholder"],
+        minimum_total_capacity=0,
+    )
+    selected_solution = solve_resource_coalition(request, resources=resources)
+    if not selected_solution.feasible:
+        raise ValueError("The demo coalition should be feasible.")
+
+    return build_hypergraph_report(mission, request, selected_solution, resources, hyperedges)
+
+
 def _print_section(title: str, payload: object) -> None:
     print(f"\n{title}")
     print(payload)
 
 
 def run_hypergraph_demo() -> HypergraphReport:
-    """Print a small hypergraph walkthrough for Lesson 08."""
+    """Print a small hypergraph walkthrough of the Thursday coalition."""
 
     report = build_demo_report()
-    print("=== RESQ-Mesh Lesson 08 Demo ===")
+    print("=== MealMesh coalition hypergraph ===")
     _print_section("1) Mission", report.mission.model_dump())
     _print_section("2) Solver coalition", report.selected_solution.model_dump())
     _print_section("3) HyperNetX nodes", report.hypergraph_node_ids)

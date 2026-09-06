@@ -1,0 +1,21 @@
+# Environment / secrets
+.env
+*_accessKeys.csv
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+
+# Large binaries / installers
+*.pkg
+
+# OS / editor
+.DS_Store
+.idea/
+
+# Agent artifacts
+.wibey-tasks/
+.wibey-test/

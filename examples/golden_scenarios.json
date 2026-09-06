@@ -1,0 +1,91 @@
+[
+  {
+    "id": "eastside_resilient",
+    "description": "Thursday Eastside has an opted-in backup for every required role.",
+    "coalition_min_capacity": 0,
+    "include_resilience": true,
+    "resources": [
+      {"id": "maya", "name": "Maya Chen", "category": "driver", "location": "Eastside", "status": "available", "availability": true, "reliability": 0.96, "capacity": 1, "capacity_unit": "site", "capability_codes": ["van_certified_driver"], "opted_in": true, "org": "Riverside Church"},
+      {"id": "luis", "name": "Luis Okonkwo", "category": "driver", "location": "Food bank bench", "status": "available", "availability": true, "reliability": 0.93, "capacity": 1, "capacity_unit": "site", "capability_codes": ["van_certified_driver"], "opted_in": true, "org": "Second Harvest"},
+      {"id": "priya", "name": "Priya Shah", "category": "food handler", "location": "Eastside", "status": "available", "availability": true, "reliability": 0.95, "capacity": 1, "capacity_unit": "site", "capability_codes": ["food_handler"], "opted_in": true, "org": "Riverside Church"},
+      {"id": "sam", "name": "Sam Ortiz", "category": "food handler", "location": "Church bench", "status": "available", "availability": true, "reliability": 0.92, "capacity": 1, "capacity_unit": "site", "capability_codes": ["food_handler"], "opted_in": true, "org": "Riverside Church"},
+      {"id": "elena", "name": "Elena Brooks", "category": "site keyholder", "location": "Eastside", "status": "available", "availability": true, "reliability": 0.97, "capacity": 1, "capacity_unit": "site", "capability_codes": ["site_keyholder"], "opted_in": true, "org": "Riverside Church"},
+      {"id": "noah", "name": "Noah Kim", "category": "site keyholder", "location": "Food bank bench", "status": "available", "availability": true, "reliability": 0.90, "capacity": 1, "capacity_unit": "site", "capability_codes": ["site_keyholder"], "opted_in": true, "org": "Second Harvest"}
+    ],
+    "mission": {
+      "destination": "Riverside Community Meals — Eastside",
+      "deadline": "2026-09-10T16:00:00-07:00",
+      "incident_type": "thursday_distribution",
+      "requirements": ["van driver", "packer", "site lead"],
+      "constraints": ["van certification required to drive"]
+    },
+    "expected": {
+      "verdict": "ready to deploy",
+      "coalition": "feasible",
+      "missing_capabilities": []
+    }
+  },
+  {
+    "id": "eastside_fragile",
+    "description": "Eastside has exactly one volunteer for each role.",
+    "coalition_min_capacity": 0,
+    "include_resilience": true,
+    "resources": [
+      {"id": "maya", "name": "Maya Chen", "category": "driver", "location": "Eastside", "status": "available", "availability": true, "reliability": 0.96, "capacity": 1, "capacity_unit": "site", "capability_codes": ["van_certified_driver"], "opted_in": true, "org": "Riverside Church"},
+      {"id": "priya", "name": "Priya Shah", "category": "food handler", "location": "Eastside", "status": "available", "availability": true, "reliability": 0.95, "capacity": 1, "capacity_unit": "site", "capability_codes": ["food_handler"], "opted_in": true, "org": "Riverside Church"},
+      {"id": "elena", "name": "Elena Brooks", "category": "site keyholder", "location": "Eastside", "status": "available", "availability": true, "reliability": 0.97, "capacity": 1, "capacity_unit": "site", "capability_codes": ["site_keyholder"], "opted_in": true, "org": "Riverside Church"}
+    ],
+    "mission": {
+      "destination": "Riverside Community Meals — Eastside",
+      "incident_type": "thursday_distribution",
+      "requirements": ["van driver", "packer", "site lead"],
+      "constraints": ["van certification required to drive"]
+    },
+    "expected": {
+      "verdict": "ready but fragile",
+      "coalition": "feasible",
+      "selected_resource_ids": ["maya", "priya", "elena"],
+      "missing_capabilities": []
+    }
+  },
+  {
+    "id": "eastside_missing_driver",
+    "description": "Eastside has a packer and keyholder but no opted-in van-certified driver.",
+    "coalition_min_capacity": 0,
+    "include_resilience": true,
+    "resources": [
+      {"id": "sam", "name": "Sam Ortiz", "category": "food handler", "location": "Church bench", "status": "available", "availability": true, "reliability": 0.92, "capacity": 1, "capacity_unit": "site", "capability_codes": ["food_handler"], "opted_in": true, "org": "Riverside Church"},
+      {"id": "noah", "name": "Noah Kim", "category": "site keyholder", "location": "Food bank bench", "status": "available", "availability": true, "reliability": 0.90, "capacity": 1, "capacity_unit": "site", "capability_codes": ["site_keyholder"], "opted_in": true, "org": "Second Harvest"}
+    ],
+    "mission": {
+      "destination": "Riverside Community Meals — Eastside",
+      "incident_type": "thursday_distribution",
+      "requirements": ["van driver", "packer", "site lead"],
+      "constraints": ["van certification required to drive"]
+    },
+    "expected": {
+      "verdict": "no feasible coalition",
+      "coalition": "infeasible",
+      "selected_resource_ids": [],
+      "missing_capabilities": ["van_certified_driver"]
+    }
+  },
+  {
+    "id": "needs_more_facts",
+    "description": "Empty coverage request short-circuits before the solver.",
+    "include_resilience": true,
+    "mission": {},
+    "expected": {"verdict": "needs more facts", "coalition": "none"}
+  },
+  {
+    "id": "needs_human_review",
+    "description": "A coverage window outside deterministic doctrine requires review.",
+    "include_resilience": true,
+    "mission": {
+      "destination": "Riverside Community Meals — Eastside",
+      "incident_type": "holiday_popup",
+      "requirements": []
+    },
+    "expected": {"verdict": "needs human review", "coalition": "none"}
+  }
+]
