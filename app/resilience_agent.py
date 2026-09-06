@@ -9,7 +9,7 @@ if __package__ is None or __package__ == "":
 
 from app.capabilities import derive_required_capabilities
 from app.mission import Mission
-from app.resilience import replan
+from app.resilience import ResilienceReport, replan
 from app.resources import Resource
 from app.solver import CoalitionRequest, solve_resource_coalition
 
@@ -86,8 +86,7 @@ def build_demo_resources() -> list[Resource]:
     ]
 
 
-def main() -> None:
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+def run_resilience_demo(*, include_summary: bool = True) -> ResilienceReport:
     mission = Mission(
         destination="Willow Creek",
         deadline="2026-09-06T18:00:00-07:00",
@@ -116,6 +115,16 @@ def main() -> None:
     print("=== RESQ-Mesh Lesson 07 Demo ===")
     _print_section("1) Baseline coalition", baseline.model_dump())
     _print_section("2) Resilience report", report.model_dump())
+    if include_summary:
+        print("\nResilience summary")
+        print(report.summary)
+        print(f"Overall classification: {report.overall_classification}")
+    return report
+
+
+def main() -> None:
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+    run_resilience_demo()
 
 
 if __name__ == "__main__":

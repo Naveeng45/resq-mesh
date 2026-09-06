@@ -111,7 +111,27 @@ def replan(
     mission_breaking_ids: list[str] = []
 
     for failed_resource_id in baseline_solution.selected_resource_ids:
-        failed_resource = next(resource for resource in catalog if resource.id == failed_resource_id)
+        failed_resource = next((resource for resource in catalog if resource.id == failed_resource_id), None)
+        if failed_resource is None:
+            mission_breaking_ids.append(failed_resource_id)
+            scenarios.append(
+                ReplanScenario(
+                    failed_resource_id=failed_resource_id,
+                    failed_resource_name=failed_resource_id,
+                    classification="mission_breaking",
+                    recoverable=False,
+                    original_selected_resource_ids=list(baseline_solution.selected_resource_ids),
+                    replacement_selected_resource_ids=[],
+                    dropped_resource_ids=list(baseline_solution.selected_resource_ids),
+                    added_resource_ids=[],
+                    unmet_capabilities=[],
+                    replacement_solution=None,
+                    replacement_summary=(
+                        f"Selected resource {failed_resource_id} is not present in the replanning catalog."
+                    ),
+                )
+            )
+            continue
         failed_catalog = _clone_with_failure(catalog, failed_resource_id)
         replacement_solution = solve_resource_coalition(request, resources=failed_catalog)
         unmet_capabilities = [] if replacement_solution.feasible else _find_unmet_capabilities(request, failed_catalog)

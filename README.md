@@ -22,6 +22,7 @@ Why this belongs here:
 
 - `app/resilience.py` — failure simulation and resilience reporting
 - `app/resilience_agent.py` — demo that prints the baseline coalition and the resilience report
+- `app/pipeline.py` — shared full-demo pipeline used by the main agent
 - `tests/test_resilience.py` — recoverable and mission-breaking failure tests
 
 ### Concept in simple terms
@@ -62,6 +63,33 @@ cd hack-projects/resq-mesh
 .venv/bin/python app/resilience_agent.py
 ```
 
+### Run the combined main agent
+
+```bash
+cd hack-projects/resq-mesh
+.venv/bin/python app/agent.py
+```
+
+### Start the interactive CLI
+
+```bash
+cd hack-projects/resq-mesh
+bash scripts/start.sh
+```
+
+You can also pass a query directly:
+
+```bash
+bash scripts/start.sh "Flood waters have isolated Willow Creek. Send the boat and medical team."
+```
+
+### Validate everything with one command
+
+```bash
+cd hack-projects/resq-mesh
+bash scripts/validate.sh
+```
+
 ### Expected output
 
 You should see:
@@ -69,6 +97,9 @@ You should see:
 - one recoverable failure case
 - one mission-breaking failure case
 - a resilience report listing the baseline coalition, replacement plans, and unmet capabilities
+- the main agent showing both phases with a final end-to-end summary
+- the validation script finishing with `Validation completed successfully.`
+- the interactive CLI accepting a user query and running the pipeline
 
 ### If something breaks
 

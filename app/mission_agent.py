@@ -76,25 +76,29 @@ def build_agent() -> Agent:
     )
 
 
-def run_mission_to_coalition_demo() -> None:
-    agent = build_agent()
-    logger.info("Sending mission request: %s", PROMPT)
+def run_mission_to_coalition_demo(mission: Mission | None = None) -> None:
+    if mission is None:
+        agent = build_agent()
+        logger.info("Sending mission request: %s", PROMPT)
 
-    try:
-        result = agent(PROMPT)
-    except NoCredentialsError:
-        print("Bedrock request failed: Unable to locate credentials")
-        print("Using the local demo mission so you can still see the solver output.")
-        result = None
-    except (BotoCoreError, ClientError) as exc:
-        print(f"Bedrock request failed: {exc}")
-        print("Using the local demo mission so you can still see the solver output.")
-        result = None
-    except Exception as exc:
-        print(f"Agent invocation failed: {exc}")
-        raise
+        try:
+            result = agent(PROMPT)
+        except NoCredentialsError:
+            print("Bedrock request failed: Unable to locate credentials")
+            print("Using the local demo mission so you can still see the solver output.")
+            result = None
+        except (BotoCoreError, ClientError) as exc:
+            print(f"Bedrock request failed: {exc}")
+            print("Using the local demo mission so you can still see the solver output.")
+            result = None
+        except Exception as exc:
+            print(f"Agent invocation failed: {exc}")
+            raise
 
-    mission = result.structured_output if result is not None else build_demo_mission()
+        mission = result.structured_output if result is not None else build_demo_mission()
+    else:
+        logger.info("Using deterministic demo mission: %s", mission.model_dump())
+
     review = review_mission(mission)
     capability_assessment = derive_required_capabilities(mission)
     coalition_solution = None
