@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from app.capabilities import derive_required_capabilities
+from app.hypergraph import build_demo_report
 from app.mission import Mission, review_mission
 from app.mission_agent import build_demo_mission
 from app.resilience import replan
@@ -61,6 +62,23 @@ def run_full_demo() -> None:
         f"recoverable={_join(report.recoverable_failure_ids)} | mission_breaking={_join(report.mission_breaking_failure_ids)}",
     )
     print("Summary:", report.summary)
+
+    print("\nPhase 3: Hypergraph Model")
+    hypergraph_report = build_demo_report()
+    print(
+        "Coalition hyperedge:",
+        hypergraph_report.selected_hyperedge.id if hypergraph_report.selected_hyperedge else "none",
+    )
+    print(
+        "Emergent capabilities:",
+        _join([capability.code for capability in hypergraph_report.emergent_capabilities]),
+    )
+    print(
+        "Structural metrics:",
+        f"components={hypergraph_report.metrics.connected_components} | "
+        f"lambda2={hypergraph_report.metrics.lambda2}",
+    )
+    print("Structural note:", hypergraph_report.structural_note)
 
 
 if __name__ == "__main__":

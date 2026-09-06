@@ -1,6 +1,120 @@
 # resq-mesh
 
-# Lesson 08: Hypergraph Model
+## Lesson 07: Failure and Replan
+
+This lesson makes the plan survive resource loss.
+
+Why this belongs here:
+
+- Lesson 06 gave us a feasible coalition.
+- Lesson 07 asks what happens when one of those selected resources fails.
+- That’s the right time for counterfactual failure testing and deterministic replanning.
+
+### What we build
+
+- a `replan()` service that reruns the solver after simulated resource loss
+- counterfactual tests for every selected resource in the baseline coalition
+- recoverable vs mission-breaking classification
+- missing-capability reporting when replanning fails
+- a simple resilience report
+
+### Files in this lesson
+
+- `app/resilience.py` — failure simulation and resilience reporting
+- `app/resilience_agent.py` — demo that prints the baseline coalition and the resilience report
+- `app/pipeline.py` — shared full-demo pipeline used by the main agent
+- `tests/test_resilience.py` — recoverable and mission-breaking failure tests
+
+### Concept in simple terms
+
+We first find a feasible coalition.
+Then we pretend one selected resource disappears.
+If the solver can still find a valid replacement plan, the failure is recoverable.
+If not, the mission breaks and we report what capability is missing.
+
+### What happens technically
+
+1. The baseline solver finds a feasible coalition.
+2. We clone the resource catalog and mark one selected resource unavailable.
+3. We run the solver again on the modified catalog.
+4. We compare the original coalition to the replacement coalition.
+5. We repeat the process for every selected resource.
+6. If the replacement is feasible, the failure is recoverable.
+7. If the replacement is infeasible, we report the unmet capabilities.
+
+### Assumptions
+
+- The baseline coalition must already be feasible before replanning.
+- Recovery means “the mission can still be satisfied,” even if the selected resources change.
+- Mission-breaking means no feasible replacement coalition exists after the failure.
+- Missing-capability reporting should be deterministic and based on the same capability ontology.
+
+### Run the lesson tests
+
+```bash
+cd hack-projects/resq-mesh
+python -m unittest tests.test_resilience -v
+```
+
+### Run the demo
+
+```bash
+cd hack-projects/resq-mesh
+.venv/bin/python app/resilience_agent.py
+```
+
+### Run the combined main agent
+
+```bash
+cd hack-projects/resq-mesh
+.venv/bin/python app/agent.py
+```
+
+The combined main agent now walks through:
+
+- Phase 1: Mission to Coalition
+- Phase 2: Failure and Replan
+- Phase 3: Hypergraph Model
+
+### Start the interactive CLI
+
+```bash
+cd hack-projects/resq-mesh
+bash scripts/start.sh
+```
+
+You can also pass a query directly:
+
+```bash
+bash scripts/start.sh "Flood waters have isolated Willow Creek. Send the boat and medical team."
+```
+
+### Validate everything with one command
+
+```bash
+cd hack-projects/resq-mesh
+bash scripts/validate.sh
+```
+
+### Expected output
+
+You should see:
+
+- one recoverable failure case
+- one mission-breaking failure case
+- a resilience report listing the baseline coalition, replacement plans, and unmet capabilities
+- the main agent showing all three phases with a final end-to-end summary
+- the validation script finishing with `Validation completed successfully.`
+- the interactive CLI accepting a user query and running the pipeline
+
+### If something breaks
+
+- If the baseline solver is infeasible, check the request and the resource catalog in the demo.
+- If every failure is mission-breaking, make sure there is an alternate resource for at least one selected capability.
+- If unmet capabilities look wrong, verify the capability ontology codes in `app/capabilities.py`.
+- If imports fail, confirm the virtual environment is active and `ortools` is installed in `.venv`.
+
+## Lesson 08: Hypergraph Model
 
 This lesson makes coalition structure explicit.
 
@@ -79,114 +193,6 @@ You should see:
 - If the solver result does not match a hyperedge, check that the resource IDs in `build_demo_resources()` and `build_demo_hyperedges()` line up exactly.
 - If `lambda2` is `0.0` in the main demo, check whether the projection graph is disconnected.
 - If the test for the disconnected graph fails, make sure the projection graph contains an isolated node.
-
-## Lesson 07: Failure and Replan
-
-This lesson makes the plan survive resource loss.
-
-Why this belongs here:
-
-- Lesson 06 gave us a feasible coalition.
-- Lesson 07 asks what happens when one of those selected resources fails.
-- That’s the right time for counterfactual failure testing and deterministic replanning.
-
-### What we build
-
-- a `replan()` service that reruns the solver after simulated resource loss
-- counterfactual tests for every selected resource in the baseline coalition
-- recoverable vs mission-breaking classification
-- missing-capability reporting when replanning fails
-- a simple resilience report
-
-### Files in this lesson
-
-- `app/resilience.py` — failure simulation and resilience reporting
-- `app/resilience_agent.py` — demo that prints the baseline coalition and the resilience report
-- `app/pipeline.py` — shared full-demo pipeline used by the main agent
-- `tests/test_resilience.py` — recoverable and mission-breaking failure tests
-
-### Concept in simple terms
-
-We first find a feasible coalition.
-Then we pretend one selected resource disappears.
-If the solver can still find a valid replacement plan, the failure is recoverable.
-If not, the mission breaks and we report what capability is missing.
-
-### What happens technically
-
-1. The baseline solver finds a feasible coalition.
-2. We clone the resource catalog and mark one selected resource unavailable.
-3. We run the solver again on the modified catalog.
-4. We compare the original coalition to the replacement coalition.
-5. We repeat the process for every selected resource.
-6. If the replacement is feasible, the failure is recoverable.
-7. If the replacement is infeasible, we report the unmet capabilities.
-
-### Assumptions
-
-- The baseline coalition must already be feasible before replanning.
-- Recovery means “the mission can still be satisfied,” even if the selected resources change.
-- Mission-breaking means no feasible replacement coalition exists after the failure.
-- Missing-capability reporting should be deterministic and based on the same capability ontology.
-
-### Run the lesson tests
-
-```bash
-cd hack-projects/resq-mesh
-python -m unittest tests.test_resilience -v
-```
-
-### Run the demo
-
-```bash
-cd hack-projects/resq-mesh
-.venv/bin/python app/resilience_agent.py
-```
-
-### Run the combined main agent
-
-```bash
-cd hack-projects/resq-mesh
-.venv/bin/python app/agent.py
-```
-
-### Start the interactive CLI
-
-```bash
-cd hack-projects/resq-mesh
-bash scripts/start.sh
-```
-
-You can also pass a query directly:
-
-```bash
-bash scripts/start.sh "Flood waters have isolated Willow Creek. Send the boat and medical team."
-```
-
-### Validate everything with one command
-
-```bash
-cd hack-projects/resq-mesh
-bash scripts/validate.sh
-```
-
-### Expected output
-
-You should see:
-
-- one recoverable failure case
-- one mission-breaking failure case
-- a resilience report listing the baseline coalition, replacement plans, and unmet capabilities
-- the main agent showing both phases with a final end-to-end summary
-- the validation script finishing with `Validation completed successfully.`
-- the interactive CLI accepting a user query and running the pipeline
-
-### If something breaks
-
-- If the baseline solver is infeasible, check the request and the resource catalog in the demo.
-- If every failure is mission-breaking, make sure there is an alternate resource for at least one selected capability.
-- If unmet capabilities look wrong, verify the capability ontology codes in `app/capabilities.py`.
-- If imports fail, confirm the virtual environment is active and `ortools` is installed in `.venv`.
 
 ## Lesson 05: Goal to Capabilities
 
