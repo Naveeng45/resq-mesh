@@ -310,23 +310,26 @@ DEMO_MESSAGES = (
 )
 
 
-def build_sentinel_agent(*, verbose_output: bool = False):
+def build_sentinel_agent(*, verbose_output: bool = False, callback_handler: Any = None):
     """Construct the tool-calling Sentinel agent (no network call at build time)."""
 
     from strands import Agent
     from strands.handlers.callback_handler import null_callback_handler
     from strands.models.bedrock import BedrockModel
 
-    from app.advisor import ToolTraceCallbackHandler
+    from app.agent_observability import StrandsAuditCallbackHandler
     from app.mission_agent import BEDROCK_REGION, MODEL_ID, ensure_aws_proxy_bypass
 
     ensure_aws_proxy_bypass()
-    callback_handler = ToolTraceCallbackHandler() if verbose_output else null_callback_handler
+    if callback_handler is None:
+        handler = StrandsAuditCallbackHandler(verbose_output=verbose_output) if verbose_output else null_callback_handler
+    else:
+        handler = callback_handler
     return Agent(
         model=BedrockModel(model_id=MODEL_ID, region_name=BEDROCK_REGION, streaming=False),
         system_prompt=SENTINEL_AGENT_SYSTEM_PROMPT,
         tools=SENTINEL_AGENT_TOOLS,
-        callback_handler=callback_handler,
+        callback_handler=handler,
     )
 
 

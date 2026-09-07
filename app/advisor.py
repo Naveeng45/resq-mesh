@@ -36,6 +36,7 @@ from strands import Agent
 from strands.handlers.callback_handler import null_callback_handler
 from strands.models.bedrock import BedrockModel
 
+from app.agent_observability import StrandsAuditCallbackHandler, ToolTraceCallbackHandler
 from app.mission_agent import BEDROCK_REGION, MODEL_ID, ensure_aws_proxy_bypass
 from app.tools import (
     assess_incident,
@@ -71,34 +72,19 @@ DEMO_QUESTIONS = (
 )
 
 
-class ToolTraceCallbackHandler:
-    """Prints only tool invocations — no raw model text or reasoning tags.
-
-    Keeps the CLI demo showing that the agent really calls the deterministic
-    tools, without leaking `<thinking>` chatter or double-printing the answer.
-    """
-
-    def __init__(self) -> None:
-        self.tool_count = 0
-
-    def __call__(self, **kwargs: Any) -> None:
-        start = kwargs.get("event", {}).get("contentBlockStart", {}).get("start", {})
-        tool_use = start.get("toolUse")
-        if tool_use:
-            self.tool_count += 1
-            print(f"  🔧 tool call #{self.tool_count}: {tool_use['name']}")
-
-
-def build_advisor(*, verbose_output: bool = False) -> Agent:
+def build_advisor(*, verbose_output: bool = False, callback_handler: Any = None) -> Agent:
     """Construct the tool-calling Advisor agent (no network call at build time)."""
 
     ensure_aws_proxy_bypass()
-    callback_handler = ToolTraceCallbackHandler() if verbose_output else null_callback_handler
+    if callback_handler is None:
+        handler = StrandsAuditCallbackHandler(verbose_output=verbose_output) if verbose_output else null_callback_handler
+    else:
+        handler = callback_handler
     return Agent(
         model=BedrockModel(model_id=MODEL_ID, region_name=BEDROCK_REGION, streaming=False),
         system_prompt=ADVISOR_SYSTEM_PROMPT,
         tools=ADVISOR_TOOLS,
-        callback_handler=callback_handler,
+        callback_handler=handler,
     )
 
 

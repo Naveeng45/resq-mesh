@@ -96,15 +96,19 @@ def _print_section(title: str, payload: dict[str, object]) -> None:
         print(f"  {key}: {value}")
 
 
-def build_agent(*, verbose_output: bool = False) -> Agent:
-    callback_handler = (
-        PrintingCallbackHandler(verbose_tool_use=True) if verbose_output else null_callback_handler
-    )
+def build_agent(*, verbose_output: bool = False, callback_handler: Any = None) -> Agent:
+    from app.agent_observability import StrandsAuditCallbackHandler
+
+    if callback_handler is None:
+        handler = StrandsAuditCallbackHandler(verbose_output=verbose_output) if verbose_output else null_callback_handler
+    else:
+        handler = callback_handler
+
     return Agent(
         model=BedrockModel(model_id=MODEL_ID, region_name=BEDROCK_REGION, streaming=False),
         system_prompt=SYSTEM_PROMPT,
         structured_output_model=Mission,
-        callback_handler=callback_handler,
+        callback_handler=handler,
     )
 
 

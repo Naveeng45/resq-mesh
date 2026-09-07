@@ -150,13 +150,20 @@ def post_advisor(request: AdvisorRequest) -> dict:
     owns every decision. Falls back gracefully when Bedrock is unreachable.
     """
     from app.advisor import ask, build_advisor
+    from app.agent_observability import StrandsAuditCallbackHandler
     from app.mission_agent import ensure_aws_proxy_bypass
 
     ensure_aws_proxy_bypass()
+    audit_handler = StrandsAuditCallbackHandler(verbose_output=False)
     try:
-        agent = build_advisor(verbose_output=False)
+        agent = build_advisor(verbose_output=False, callback_handler=audit_handler)
         answer = ask(agent, request.question)
-        return {"answer": answer, "used_llm": True, "tools": list(agent.tool_names)}
+        return {
+            "answer": answer,
+            "used_llm": True,
+            "tools": list(agent.tool_names),
+            "audit_summary": audit_handler.summary().model_dump(mode="json"),
+        }
     except Exception as exc:  # noqa: BLE001 - graceful fallback, mirrors /api/extract
         return {
             "answer": (
@@ -165,4 +172,22 @@ def post_advisor(request: AdvisorRequest) -> dict:
             ),
             "used_llm": False,
             "tools": [],
+            "audit_summary": None,
         }
+
+
+@app.get("/api/agent/audit")
+def get_agent_audit() -> dict:
+    """Return accumulated Strands agent execution audit logs."""
+    from app.agent_observability import get_global_audit_trail
+
+    return {"records": get_global_audit_trail()}
+
+
+@app.delete("/api/agent/audit")
+def delete_agent_audit() -> dict:
+    """Clear accumulated Strands agent execution audit logs."""
+    from app.agent_observability import clear_global_audit_trail
+
+    clear_global_audit_trail()
+    return {"status": "cleared"}

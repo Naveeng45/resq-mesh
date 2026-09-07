@@ -1,0 +1,18 @@
+# Render Blueprint — MealMesh live demo
+# https://render.com/docs/blueprint-spec
+#
+# Deploy: connect this GitHub repo in Render → New Blueprint Instance.
+services:
+  - type: web
+    name: mealmesh
+    runtime: python
+    plan: free
+    region: oregon
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.api.server:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/scenario
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.8"
+      - key: RESQ_NOTIFY_DRY_RUN
+        value: "true"
