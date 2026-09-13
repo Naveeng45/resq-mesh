@@ -1,452 +1,333 @@
-# resq-mesh
+# MealMesh
 
-## Lesson 07: Failure and Replan
+> **When a volunteer cancels, this agent re-solves coverage in seconds — silently. No backup exists? It pages you instantly. The LLM interprets. The math decides. Humans only hear what matters.**
 
-This lesson makes the plan survive resource loss.
+Built with [Strands Agents SDK](https://github.com/strands-agents/sdk-python) for the [Agents for Humans Hackathon](https://agents-for-humans.devpost.com/) — **Good Neighbor Agents** track.
 
-Why this belongs here:
+---
 
-- Lesson 06 gave us a feasible coalition.
-- Lesson 07 asks what happens when one of those selected resources fails.
-- That’s the right time for counterfactual failure testing and deterministic replanning.
+## Inspiration
 
-### What we build
+Last year, my neighbor Rosa spent every Thursday afternoon doing the same thing — calling, texting, begging. Not for donations. For *coverage.* She coordinates a weekly meal distribution at Riverside Community Center that feeds 200 families. And every single week, someone cancels. A driver's car breaks down. A packer has a sick kid. A site lead gets stuck at work.
 
-- a `replan()` service that reruns the solver after simulated resource loss
-- counterfactual tests for every selected resource in the baseline coalition
-- recoverable vs mission-breaking classification
-- missing-capability reporting when replanning fails
-- a simple resilience report
+Rosa told me she spends 5–10 hours a week just reshuffling schedules. Not cooking. Not fundraising. Not talking to the families she serves. Just logistics. Phone tag. "Can you cover for Maria?" texts sent to ten people, hoping two reply.
 
-### Files in this lesson
+The worst part? 90% of the time, there's an obvious backup. She just can't *see* it fast enough. And while she's solving the easy ones, the real emergencies — the ones where there genuinely is no backup and a site might go dark — get buried in the noise.
 
-- `app/resilience.py` — failure simulation and resilience reporting
-- `app/resilience_agent.py` — demo that prints the baseline coalition and the resilience report
-- `app/pipeline.py` — shared full-demo pipeline used by the main agent
-- `tests/test_resilience.py` — recoverable and mission-breaking failure tests
+This is exactly the kind of work an AI agent should do. Not a chatbot that suggests names. Not a dashboard Rosa has to check. An agent that runs silently in the background, absorbs the routine disruptions, and only taps Rosa on the shoulder when there's a genuine decision that needs a human brain and a human heart.
 
-### Concept in simple terms
+That's MealMesh.
 
-We first find a feasible coalition.
-Then we pretend one selected resource disappears.
-If the solver can still find a valid replacement plan, the failure is recoverable.
-If not, the mission breaks and we report what capability is missing.
+## What It Does
 
-### What happens technically
+MealMesh is an autonomous agent that keeps community meal programs running. It takes a natural-language request — *"We need Thursday coverage at Riverside: a van driver, a packer, and a site lead by 4 PM"* — and handles everything from understanding to decision-making to monitoring.
 
-1. The baseline solver finds a feasible coalition.
-2. We clone the resource catalog and mark one selected resource unavailable.
-3. We run the solver again on the modified catalog.
-4. We compare the original coalition to the replacement coalition.
-5. We repeat the process for every selected resource.
-6. If the replacement is feasible, the failure is recoverable.
-7. If the replacement is infeasible, we report the unmet capabilities.
+**The AI never makes the decision.** It only extracts facts. A mathematical constraint solver (CP-SAT) *proves* whether coverage is feasible and picks the optimal volunteer team. A resilience engine stress-tests the plan by simulating every possible single-volunteer cancellation — so Rosa knows what would break before it happens.
 
-### Assumptions
+Then the **Silent Deputy** takes over. It's an autonomous sentinel that watches for real-world changes — cancellations, returns, new volunteers — and re-runs the full pipeline on every change. If it can absorb the disruption, it stays silent. If the plan actually breaks, it escalates immediately with full context.
 
-- The baseline coalition must already be feasible before replanning.
-- Recovery means “the mission can still be satisfied,” even if the selected resources change.
-- Mission-breaking means no feasible replacement coalition exists after the failure.
-- Missing-capability reporting should be deterministic and based on the same capability ontology.
+The result: Rosa's phone stops buzzing with solvable problems. It only buzzes when it matters.
 
-### Run the lesson tests
+## How It Works
 
-```bash
-cd hack-projects/resq-mesh
-python -m unittest tests.test_resilience -v
+```
+Natural language request
+        │
+        ▼
+  ┌─────────────┐
+  │  Guardrails  │  Sanitize input, flag injection attempts
+  └──────┬──────┘
+         ▼
+  ┌─────────────┐
+  │  LLM Extract │  Strands + Amazon Bedrock → structured Mission (facts only)
+  └──────┬──────┘
+         ▼
+  ┌─────────────┐
+  │  HITL Review │  Missing critical facts? → ask a human
+  └──────┬──────┘
+         ▼
+  ┌─────────────┐
+  │ Capabilities │  Deterministic rules: facts → required capabilities
+  └──────┬──────┘
+         ▼
+  ┌─────────────┐
+  │  CP-SAT      │  OR-Tools solver → optimal feasible coalition
+  └──────┬──────┘
+         ▼
+  ┌─────────────┐
+  │  Resilience   │  Remove each resource, re-solve → fragility map
+  └──────┬──────┘
+         ▼
+  ┌─────────────┐
+  │  Hypergraph   │  Emergent capabilities + structural metrics
+  └──────┬──────┘
+         ▼
+  ┌─────────────┐
+  │  Sentinel     │  Autonomous monitor → escalate or stay silent
+  └─────────────┘
 ```
 
-### Run the demo
+### The Trust Boundary
 
-```bash
-cd hack-projects/resq-mesh
-.venv/bin/python app/resilience_agent.py
+The LLM **never allocates resources**. It only translates natural language into structured facts. Every decision after that is deterministic and mathematically provable:
+
+| Layer | Probabilistic? | Can allocate resources? |
+|---|---|---|
+| Guardrails | No | No |
+| LLM extraction | **Yes** | **No** — facts only |
+| HITL review | No | No — gates the flow |
+| Capability rules | No | No — derives requirements |
+| CP-SAT solver | No | **Yes** — the decision authority |
+| Resilience engine | No | No — stress-tests the decision |
+| Human approval | Human | Final approval before execution |
+
+### The Sentinel (Silent Deputy)
+
+The **Silent Deputy** (`app/sentinel.py`) is the core of the submission. It watches for world-state changes (volunteer cancels, returns, new recruit) and autonomously decides:
+
+- **SILENT** — nothing meaningful changed
+- **AUTO-RECOMPOSE** — absorbed the loss silently (feasible + resilient)
+- **ESCALATE** — genuine decision needed (fragile / infeasible / needs review)
+- **IMPROVED / RESOLVED** — human's action restored the mission
+
+Escalations are **edge-triggered** — it alerts when things get *worse*, not on every tick. No spam.
+
+## Architecture Diagram
+
+![Architecture](docs/architecture.svg)
+
+## How We Built It
+
+We built MealMesh in layers, each independently testable, each defending one idea: **the language model interprets, but never decides.**
+
+### Strands Agents SDK — Three Patterns
+
+**Pattern 1 — Structured Extraction Agent**
+
+```python
+from strands import Agent
+from strands.models.bedrock import BedrockModel
+
+agent = Agent(
+    model=BedrockModel(model_id="us.amazon.nova-lite-v1:0", ...),
+    system_prompt="Extract facts only. Never decide.",
+    structured_output_model=Mission,   # Pydantic model → guaranteed schema
+)
+
+result = agent("We need Thursday coverage — van driver, packer, site lead")
+mission = result.structured_output   # Mission(destination=..., requirements=[...])
 ```
 
-### Run the combined main agent
+`structured_output_model` guarantees the LLM returns a valid `Mission`. Missing facts are `null`, not hallucinated.
 
-```bash
-cd hack-projects/resq-mesh
-.venv/bin/python app/agent.py
+**Pattern 2 — Tool-Calling ReAct Agent (The Advisor)**
+
+```python
+advisor = Agent(
+    model=BedrockModel(...),
+    system_prompt="Never decide yourself. Call tools and report their output.",
+    tools=[assess_incident, get_available_resources, get_resources_by_capability],
+)
+
+answer = advisor("Can Riverside Eastside open Thursday?")
+# → Agent calls assess_incident → CP-SAT solver runs → plain-English verdict
 ```
 
-The combined main agent now walks through:
+The Advisor orchestrates and explains. The deterministic tools decide.
 
-- Phase 1: Mission to Coalition
-- Phase 2: Failure and Replan
-- Phase 3: Hypergraph Model
+**Pattern 3 — @tool Decorator**
 
-### Start the interactive CLI
+```python
+from strands import tool
 
-```bash
-cd hack-projects/resq-mesh
-bash scripts/start.sh
+@tool
+def assess_incident(destination: str, incident_type: str, ...) -> dict:
+    """Decide whether a meal site can be covered, and by whom."""
+    mission = Mission(...)
+    result = run_pipeline(mission, resources=list_available_resources(), ...)
+    return {"verdict": result.verdict, "feasible": ..., "missing": ...}
 ```
 
-You can also pass a query directly:
+9 tools total — from coalition planning to counterfactual failure analysis to recovery proposals. Strands handles schema generation, argument parsing, and result routing.
+
+### The Layers
+
+| Layer | Module | What it does |
+|---|---|---|
+| Guardrails | `app/guardrails.py` | Input sanitization, prompt-injection detection |
+| LLM Extraction | `app/mission_agent.py` | Strands agent → structured `Mission` via Bedrock |
+| HITL Review | `app/mission.py` | Gates the flow on missing critical facts |
+| Capability Rules | `app/capabilities.py` | Deterministic: incident facts → required capabilities |
+| CP-SAT Solver | `app/solver.py` | OR-Tools constraint solver → optimal volunteer team |
+| Resilience | `app/resilience.py` | Remove each volunteer, re-solve → fragility map |
+| Hypergraph | `app/hypergraph.py` | HyperNetX emergent capabilities as hyperedges |
+| Sentinel | `app/sentinel.py` | Autonomous background monitor with edge-triggered escalation |
+| Advisor | `app/advisor.py` | Strands ReAct agent — plain English to deterministic answers |
+| Dashboard | `app/api/server.py` | FastAPI web UI with scenario presets and Sentinel replay |
+
+## Challenges We Ran Into
+
+**The trust boundary was hard to get right.** Early on, the LLM "helpfully" suggested volunteer assignments in its extraction output. It took several iterations of system prompt engineering and Pydantic validation to enforce: extract facts, nothing more. Strands' `structured_output_model` was the breakthrough — it made the contract enforceable, not just aspirational.
+
+**Edge-triggered escalation was trickier than it sounds.** The sentinel's first version spammed alerts on every tick because it compared absolute state instead of *transitions*. A plan that was already infeasible triggered a new escalation every 30 seconds. We implemented severity ranking and only alert on worsening transitions — which also meant tracking "resolved" and "improved" states.
+
+**Keeping the demo honest without AWS credentials.** Not everyone running the demo will have Bedrock access. Every layer needed a deterministic fallback path — demo missions, offline tool execution, dry-run notifications — without compromising the architecture.
+
+## Accomplishments That We're Proud Of
+
+**The LLM never once allocated a resource.** Across 27 test modules, 7,200 lines of tests, and every demo scenario, the trust boundary held. The language model interprets. The math decides.
+
+**The Silent Deputy actually works.** In our Thursday simulation, 6 world events happen. The sentinel handles 4 silently — auto-recomposing without bothering anyone. It escalates exactly twice: once when the only van-certified driver cancels, and once when two critical roles cancel simultaneously. Handle the routine, surface the real decisions.
+
+**Independently testable end to end.** Run `pytest tests/ -v` with zero AWS credentials and every test passes. The deterministic pipeline doesn't need the cloud to prove it works.
+
+**9,700 lines of production code, 7,200 lines of tests, 9 Strands tools, 27 test modules.** And it all composes through a single `run_pipeline()` call.
+
+## What We Learned
+
+**Agents are most powerful when most constrained.** Every time we pulled authority *away* from the LLM and gave it to deterministic code, the system got more reliable. The best pattern: LLM as an *interface* to deterministic *authority*.
+
+**Strands' `@tool` decorator is the cleanest LLM-to-backend bridge we've used.** The function signature *is* the contract.
+
+**Resilience testing should happen before deployment, not after failure.** Rosa doesn't just know the plan works. She knows exactly which single cancellation would break it.
+
+**Community coordination is an underserved domain for AI.** The people who need autonomous help the most are doing unpaid coordination work with spreadsheets and group texts. They deserve better tools.
+
+## What's Next for MealMesh
+
+- **Real-world pilot** — early conversations with two community meal programs for live testing
+- **Multi-site orchestration** — joint optimization across locations sharing volunteers
+- **SMS / WhatsApp** — escalations where coordinators actually are (not just Slack)
+- **AgentCore deployment** — always-on managed sentinel via Amazon Bedrock AgentCore
+- **Open-source playbook** — fork, plug in your roster, connect Slack, running in an afternoon
+
+## Quick Start
+
+### Prerequisites
+
+- Python 3.11+
+- AWS credentials with Amazon Bedrock access (optional — falls back to demo data)
+
+### Install & Run
 
 ```bash
-bash scripts/start.sh "Flood waters have isolated Willow Creek. Send the boat and medical team."
-```
-
-### Validate everything with one command
-
-```bash
-cd hack-projects/resq-mesh
-bash scripts/validate.sh
-```
-
-### Expected output
-
-You should see:
-
-- one recoverable failure case
-- one mission-breaking failure case
-- a resilience report listing the baseline coalition, replacement plans, and unmet capabilities
-- the main agent showing all three phases with a final end-to-end summary
-- the validation script finishing with `Validation completed successfully.`
-- the interactive CLI accepting a user query and running the pipeline
-
-### If something breaks
-
-- If the baseline solver is infeasible, check the request and the resource catalog in the demo.
-- If every failure is mission-breaking, make sure there is an alternate resource for at least one selected capability.
-- If unmet capabilities look wrong, verify the capability ontology codes in `app/capabilities.py`.
-- If imports fail, confirm the virtual environment is active and `ortools` is installed in `.venv`.
-
-## Lesson 08: Hypergraph Model
-
-This lesson makes coalition structure explicit.
-
-Why this belongs here:
-
-- Lesson 06 showed how the solver picks a feasible coalition.
-- Lesson 07 showed how to test that coalition under explicit resource removal.
-- Lesson 08 adds the structural layer: some capabilities only appear when a specific combination of resources exists together.
-
-### What we build
-
-- a small hypergraph of resources and coalition units
-- one emergent capability that no individual resource owns
-- a solver-to-hyperedge match for the demo mission
-- a simple structural metric view using projected connectivity and `lambda2`
-- a clear note that `lambda2` is structural, not a replacement for explicit re-solving
-
-### Files in this lesson
-
-- `app/hypergraph.py` - hypergraph models, structural metrics, and the demo report
-- `app/hypergraph_agent.py` - lesson demo entrypoint
-- `tests/test_hypergraph.py` - tests for emergent capabilities and graph connectivity
-
-### Concept in simple terms
-
-A graph connects pairs of things.
-A hypergraph connects groups of things.
-
-That matters when a capability only appears when several resources operate together, because no single node in the graph can represent the full coalition.
-
-### What happens technically
-
-1. Resources stay as nodes.
-2. Valid coalition units become hyperedges.
-3. Each hyperedge can carry an emergent capability label.
-4. The solver still picks a feasible coalition deterministically.
-5. The selected coalition is matched back to a hyperedge if the resource sets align.
-6. We project the hypergraph into a pairwise graph to compute structural metrics like connected components and `lambda2`.
-7. We keep operational criticality separate by continuing to rely on explicit resource removal and re-solving from Lesson 07.
-
-### Assumptions
-
-- The hypergraph is synthetic and small on purpose.
-- `lambda2` is useful as a structural signal, but it does not tell us which exact resource failure will break a mission.
-- A coalition hyperedge represents a valid multi-resource unit, not a replacement for the solver.
-- Emergent capabilities are deterministic labels attached to valid combinations.
-
-### Run the lesson tests
-
-```bash
-cd hack-projects/resq-mesh
-python -m unittest tests.test_hypergraph -v
-```
-
-### Run the demo
-
-```bash
-cd hack-projects/resq-mesh
-.venv/bin/python app/hypergraph_agent.py
-```
-
-### Expected output
-
-You should see:
-
-- the mission and solver-selected coalition
-- the HyperNetX node and hyperedge lists
-- a coalition hyperedge that maps to the selected solver result
-- an emergent capability like `flood_evacuation` that no single resource owns
-- a small connectivity summary with component count and `lambda2`
-- a note that structural metrics do not replace explicit failure simulation
-
-### If something breaks
-
-- If `hypernetx` cannot import, reinstall dependencies from `requirements.txt`.
-- If the solver result does not match a hyperedge, check that the resource IDs in `build_demo_resources()` and `build_demo_hyperedges()` line up exactly.
-- If `lambda2` is `0.0` in the main demo, check whether the projection graph is disconnected.
-- If the test for the disconnected graph fails, make sure the projection graph contains an isolated node.
-
-## Lesson 05: Goal to Capabilities
-
-This lesson turns extracted incident facts into deterministic mission requirements.
-
-Why this belongs here:
-
-- Lesson 03 taught us to extract structure.
-- Lesson 04 taught us to keep world-state deterministic.
-- Lesson 05 teaches the trust boundary between interpretation and doctrine.
-
-### What we build
-
-- a small capability ontology
-- deterministic rules that map incident facts to required capabilities
-- an LLM prompt that extracts facts only
-- a comparison between LLM-extracted request terms and rule-derived requirements
-- a low-confidence or unknown case that requires human review
-- tests for known incident patterns
-
-### Files in this lesson
-
-- `app/capabilities.py` — capability ontology, deterministic rules, and comparison helpers
-- `app/mission.py` — extracted incident facts model
-- `app/mission_agent.py` — demo agent that prints facts, derived capabilities, and the coalition solver output
-- `tests/test_capabilities.py` — rule and review tests
-
-### Concept in simple terms
-
-The LLM is a translator, not a commander.
-It can turn a natural-language request into clean facts.
-The rules engine then decides which capabilities are required.
-
-That separation matters because operational doctrine must stay deterministic.
-We do not want the model inventing response policy, choosing resources, or silently expanding the mission.
-
-### What happens technically
-
-1. The LLM extracts incident facts into `Mission`.
-2. The extracted request terms stay as user intent, not approved doctrine.
-3. `derive_required_capabilities()` in `app/capabilities.py` applies deterministic rules.
-4. The rule engine produces `RequiredCapability[]` with reason text and confidence.
-5. The assessment compares LLM-requested capability codes with rule-derived capability codes.
-6. If the incident is unknown or the rule confidence is low, the assessment asks for human review.
-7. When the mission is clear, `mission_agent.py` passes the deterministic capability codes into the CP-SAT solver.
-
-### Trust boundary
-
-- LLM: extract only what the user said.
-- Python rules: decide what the mission requires.
-- Human review: handle gaps, ambiguity, or low-confidence cases.
-- Solver: choose a feasible coalition from the deterministic requirements.
-
-### Assumptions
-
-- `requirements` on `Mission` means explicit user-stated needs, not approved mission doctrine.
-- `incident_type` is the main anchor for deterministic capability mapping.
-- If the rules cannot confidently map the facts, the result should be reviewed by a human.
-- This lesson keeps capability selection outside the LLM so the behavior stays testable.
-
-### Run the lesson tests
-
-```bash
-cd hack-projects/resq-mesh
-python -m unittest tests.test_capabilities -v
-python -m unittest tests.test_mission -v
-python -m unittest tests.test_tools -v
-```
-
-### Run the combined demo
-
-```bash
-cd hack-projects/resq-mesh
-.venv/bin/python app/mission_agent.py
-```
-
-### Expected output
-
-You should see:
-
-- the known flood case maps to `flood_access` and `field_triage`
-- the low-confidence case requires human review
-- the unknown case requires human review
-- the earlier mission and resource tests still pass
-- the combined demo shows the extracted mission, derived capabilities, and the coalition selected by the solver
-
-### If something breaks
-
-- If `Mission` import errors appear, check that `app/mission.py` still exports the model the tests expect.
-- If capability comparison fails, confirm the synonym mapping in `app/capabilities.py`.
-- If review is not triggered for the low-confidence case, check the threshold and the review reason logic.
-- If the demo script crashes, make sure the Bedrock credentials and region are configured before running `app/mission_agent.py`.
-
-## Lesson 04: Resource Catalog
-
-This lesson builds the deterministic world-state that a planner can query without asking the LLM to invent facts.
-
-Why this belongs here:
-
-- Lesson 03 taught us to keep extraction structured.
-- Lesson 04 teaches us to keep world-state deterministic.
-- The planner should read a resource catalog, not reason its way into fake availability or capacity.
-
-### What we build
-
-- `Resource` and `Capability` models
-- a small synthetic resource inventory
-- availability, status, reliability, location, and capacity fields
-- deterministic query helpers in Python
-- a Strands tool that finds resources by required capability
-- tests that prove unavailable resources are excluded
-
-### Files in this lesson
-
-- `app/resources.py` — synthetic resource and capability catalog plus deterministic query functions
-- `app/tools.py` — Strands tools that expose the catalog
-- `tests/test_tools.py` — availability and capability lookup tests
-
-### Concept in simple terms
-
-We separate facts from reasoning.
-The catalog says what exists, where it is, and whether it can be used.
-The LLM should ask for those facts through tools instead of making them up.
-
-### What happens technically
-
-1. Python keeps the catalog in `app/resources.py`.
-2. Each resource has explicit metadata like `status`, `availability`, `location`, `reliability`, and optional `capacity`.
-3. A deterministic query function filters the catalog by exact capability match.
-4. The Strands tool converts the internal models into JSON-serializable data.
-5. Because availability filtering happens in Python, unavailable resources never reach the planner.
-
-### Synthetic-data labeling
-
-Every catalog record includes `synthetic_data=True`.
-That label makes it clear this lesson uses mock data for learning, not live operational truth.
-
-### Assumptions
-
-- `availability=False` means the resource should not be used by the planner.
-- `status` explains why a resource is unavailable, such as `maintenance` or `offline`.
-- `capacity` is optional because not every resource has a useful numeric limit.
-- Capability lookups are deterministic exact matches against the curated synthetic capability catalog.
-
-### Setup
-
-```bash
-cd hack-projects/resq-mesh
-python3 -m venv .venv
-source .venv/bin/activate
+git clone https://github.com/<your-username>/resq-mesh.git
+cd resq-mesh
+python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
+
+# CLI demo (no AWS needed)
+python -m app.cli --demo
+
+# Dashboard
+uvicorn app.api.server:app --reload
+# → http://localhost:8000
 ```
 
-### Run the catalog tests
+### With Amazon Bedrock (live NL extraction)
 
 ```bash
-source .venv/bin/activate
-python -m unittest tests.test_tools -v
+export AWS_DEFAULT_REGION=us-east-1
+export AWS_ACCESS_KEY_ID=<your-key>
+export AWS_SECRET_ACCESS_KEY=<your-secret>
+
+python -m app.cli "We need Thursday coverage at Riverside — a van driver, a packer, and a site lead by 4pm"
 ```
 
-### Expected output
-
-You should see tests that:
-
-- confirm the available catalog returns only usable resources
-- confirm the flood-access lookup returns the available drone
-- confirm the maintenance boat is excluded
-
-### If something breaks
-
-- `ModuleNotFoundError: pydantic` or `ModuleNotFoundError: strands` usually means the virtual environment is not active.
-- If a test fails on ordering, make sure the catalog and expected output use the same deterministic order.
-- If a capability lookup returns nothing, check the capability code or label spelling in `app/resources.py`.
-- If a resource appears when it should be excluded, confirm both `availability` and `status` are being checked.
-# Lesson 06: CP-SAT Solver
-
-This lesson adds a deterministic optimizer that chooses a feasible coalition of resources.
-
-Why this belongs here:
-
-- Lesson 05 taught us to turn incident facts into deterministic requirements.
-- Lesson 06 teaches us how to satisfy those requirements with a solver instead of an LLM.
-- The solver must own feasibility and optimization because those are hard rules, not creative text generation.
-
-### What we build
-
-- binary decision variables for resource selection
-- hard constraints for capability coverage, capacity, and availability
-- a simple objective that minimizes the number of selected resources
-- feasible and infeasible test cases
-- plain-English explanations of each constraint
-
-### Files in this lesson
-
-- `app/solver.py` — CP-SAT request and result models plus the deterministic solver
-- `tests/test_solver.py` — feasible and infeasible solver tests
-
-### Concept in simple terms
-
-Each resource is either selected or not selected.
-The solver tries different combinations until it finds one that satisfies every hard constraint.
-Only after a solution is feasible do we care about making it smaller or cheaper.
-
-### What happens technically
-
-1. We create one binary decision variable per resource.
-2. Availability rules force unavailable resources to 0.
-3. Capability coverage rules require at least one selected resource for each requested capability.
-4. Capacity rules require the selected coalition to meet the requested minimum capacity.
-5. The objective minimizes the number of selected resources.
-6. CP-SAT returns either an optimal coalition or an infeasible result.
-
-### Assumptions
-
-- A resource with `availability=False` or a non-`available` status cannot be selected.
-- Capability coverage is an all-required-capabilities rule, not a best-effort suggestion.
-- Capacity is modeled as total selected capacity in this lesson.
-- The solver only works on deterministic structured inputs and never asks the LLM to optimize.
-
-### Setup
+### Run Tests
 
 ```bash
-cd hack-projects/resq-mesh
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+pytest tests/ -v
 ```
 
-### Run the solver tests
+## Key Features
 
+| Feature | Details |
+|---|---|
+| **Strands Agents SDK** | LLM extraction agent with tool use and structured output |
+| **OR-Tools CP-SAT Solver** | Mathematically optimal resource allocation — not LLM guesswork |
+| **Counterfactual Resilience** | "What if Volunteer X cancels?" answered for every person in the plan |
+| **Hypergraph Modeling** | Emergent multi-resource capabilities as hyperedges (HyperNetX) |
+| **Guardrails** | Prompt injection detection, input sanitization, bounded input size |
+| **Autonomous Sentinel** | Background agent that monitors and self-heals coverage plans |
+| **Notifications** | Slack / webhook escalation delivery (configurable, dry-run safe) |
+| **FastAPI Dashboard** | Interactive web UI with scenario presets and Sentinel replay |
+| **AgentCore Ready** | Deployment entrypoint for Amazon Bedrock AgentCore |
+| **Observability** | Structured logging, trace IDs, agent-level event tracking |
+
+## Project Structure
+
+```
+app/
+├── mission_agent.py       # Strands agent: NL → structured Mission
+├── guardrails.py          # Input sanitization & injection detection
+├── mission.py             # Mission model + HITL review gate
+├── capabilities.py        # Deterministic: facts → required capabilities
+├── solver.py              # OR-Tools CP-SAT coalition optimizer
+├── resilience.py          # Counterfactual failure simulation
+├── hypergraph.py          # HyperNetX emergent capability graph
+├── orchestration.py       # Single wiring point for the full pipeline
+├── sentinel.py            # Autonomous background monitor agent
+├── advisor.py             # Strands ReAct conversational agent
+├── notifications.py       # Slack / webhook escalation delivery
+├── semantic_tools.py      # 6 advanced Strands @tool wrappers
+├── tools.py               # 3 core Strands @tool wrappers
+├── api/server.py          # FastAPI dashboard backend
+├── cli.py                 # Command-line interface
+└── ...                    # ~9,700 lines across 38 modules
+tests/                     # 27 test modules, ~7,200 lines
+examples/                  # Golden scenarios and structured missions
+deploy/
+├── agentcore/             # Amazon Bedrock AgentCore entrypoint
+└── dashboard/             # Hosting guide (Render / Fly.io / Docker)
+docs/
+├── architecture.svg       # Architecture diagram
+├── architecture.md        # Detailed architecture documentation
+├── journey.md             # Build journey narrative
+└── slos.md                # Service-level objectives
+```
+
+## Built With
+
+Strands Agents SDK · Amazon Bedrock · AWS · Python · Google OR-Tools · CP-SAT Solver · FastAPI · HyperNetX · Pydantic · Docker · Amazon Nova Lite · Uvicorn · pytest · NumPy · Pandas · NetworkX · Render · Fly.io · Amazon Bedrock AgentCore · Slack API
+
+## Tech Stack
+
+| Component | Technology |
+|---|---|
+| Agent framework | [Strands Agents SDK](https://github.com/strands-agents/sdk-python) |
+| LLM | Amazon Bedrock (Nova Lite) |
+| Constraint solver | Google OR-Tools CP-SAT |
+| Hypergraph | HyperNetX |
+| API | FastAPI + Uvicorn |
+| Config | Pydantic Settings |
+| Deployment | Docker, Render, Fly.io, AgentCore |
+| Tests | pytest (27 modules, ~7,200 lines) |
+
+## Deployment
+
+**Render** (fastest free HTTPS):
 ```bash
-source .venv/bin/activate
-python -m unittest tests.test_solver -v
+# render.yaml is pre-configured — connect repo at dashboard.render.com/blueprints
 ```
 
-### Run the actual app demo
-
+**Docker**:
 ```bash
-source .venv/bin/activate
-python app/solver_agent.py
+docker build -t mealmesh .
+docker run --rm -p 8000:8000 mealmesh
 ```
 
-### Expected output
+**AgentCore**:
+```bash
+pip install -r deploy/agentcore/requirements-agentcore.txt
+agentcore configure --entrypoint deploy/agentcore/agent_entrypoint.py
+agentcore launch
+```
 
-You should see:
+## Build Journey
 
-- one test that finds the minimal feasible coalition
-- one test that fails when a required capability is missing
-- one test that fails when the only matching resource is unavailable
-- the app demo printing the selected resource IDs, coalition size, total capacity, and solver status
+See [docs/journey.md](docs/journey.md) for the full narrative of how each layer was designed, tested, and composed.
 
-### If something breaks
+## License
 
-- If `ModuleNotFoundError: ortools` appears, reinstall dependencies with `pip install -r requirements.txt`.
-- If the solver returns a different coalition than expected, check the objective and whether multiple coalitions have the same size.
-- If an infeasible case unexpectedly passes, check the capability list and the availability constraint.
-- If resource selection looks wrong, verify that the test data matches the solver's capacity and capability assumptions.
+[MIT](LICENSE)

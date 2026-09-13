@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RESQ-Mesh — Agents for Humans Hackathon</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --bg-card: #12121a;
+    --bg-code: #1a1a2e;
+    --text: #e8e6e3;
+    --text-dim: #8a8a9a;
+    --accent: #4ecdc4;
+    --accent2: #ff6b6b;
+    --accent3: #feca57;
+    --accent4: #a29bfe;
+    --gradient1: linear-gradient(135deg, #4ecdc4 0%, #44b3a8 100%);
+    --gradient2: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+    --gradient3: linear-gradient(135deg, #feca57 0%, #f0932b 100%);
+  }
+
+  html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; }
+
+  .deck { height: 100%; width: 100%; position: relative; }
+
+  .slide {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    padding: 60px 80px;
+    opacity: 0; visibility: hidden;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    transform: translateX(40px);
+  }
+  .slide.active {
+    opacity: 1; visibility: visible; transform: translateX(0);
+  }
+  .slide.exit {
+    opacity: 0; transform: translateX(-40px);
+  }
+
+  h1 { font-size: 3.2rem; font-weight: 800; line-height: 1.1; letter-spacing: -0.03em; }
+  h2 { font-size: 2.2rem; font-weight: 700; line-height: 1.2; letter-spacing: -0.02em; }
+  h3 { font-size: 1.5rem; font-weight: 600; line-height: 1.3; }
+  p, li { font-size: 1.25rem; line-height: 1.6; font-weight: 400; }
+  .dim { color: var(--text-dim); }
+  .accent { color: var(--accent); }
+  .accent2 { color: var(--accent2); }
+  .accent3 { color: var(--accent3); }
+  .accent4 { color: var(--accent4); }
+
+  .badge {
+    display: inline-block; padding: 6px 16px; border-radius: 20px;
+    font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .badge-teal { background: rgba(78, 205, 196, 0.15); color: var(--accent); border: 1px solid rgba(78, 205, 196, 0.3); }
+  .badge-red { background: rgba(255, 107, 107, 0.15); color: var(--accent2); border: 1px solid rgba(255, 107, 107, 0.3); }
+  .badge-yellow { background: rgba(254, 202, 87, 0.15); color: var(--accent3); border: 1px solid rgba(254, 202, 87, 0.3); }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 30px; width: 100%; }
+
+  .card {
+    background: var(--bg-card); border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px; padding: 32px;
+  }
+  .card h3 { margin-bottom: 12px; }
+  .card p { font-size: 1.05rem; color: var(--text-dim); }
+
+  code, .code {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--bg-code); border-radius: 8px;
+  }
+  code { padding: 2px 8px; font-size: 0.95em; }
+  pre.code-block {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--bg-code); border-radius: 12px;
+    padding: 24px 28px; font-size: 0.92rem; line-height: 1.7;
+    overflow-x: auto; text-align: left; width: 100%;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .kw { color: #c792ea; }
+  .fn { color: #82aaff; }
+  .str { color: #c3e88d; }
+  .cm { color: #546e7a; }
+  .op { color: #89ddff; }
+  .var { color: #f0f0f0; }
+  .dec { color: #feca57; }
+
+  .flow-step {
+    display: flex; align-items: center; gap: 16px;
+    padding: 14px 20px; border-radius: 12px;
+    background: var(--bg-card); border: 1px solid rgba(255,255,255,0.06);
+    margin-bottom: 8px;
+  }
+  .flow-num {
+    width: 36px; height: 36px; border-radius: 50%; display: flex;
+    align-items: center; justify-content: center;
+    font-weight: 700; font-size: 0.9rem; flex-shrink: 0;
+  }
+  .flow-arrow {
+    text-align: center; color: var(--text-dim); font-size: 1.2rem;
+    margin: 2px 0;
+  }
+
+  .trust-table {
+    width: 100%; border-collapse: separate; border-spacing: 0;
+    border-radius: 12px; overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .trust-table th {
+    background: rgba(78, 205, 196, 0.1); padding: 14px 20px;
+    text-align: left; font-size: 0.95rem; font-weight: 600;
+    color: var(--accent);
+  }
+  .trust-table td {
+    padding: 12px 20px; font-size: 0.95rem;
+    border-top: 1px solid rgba(255,255,255,0.04);
+  }
+  .trust-table tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+  .tag-yes { color: var(--accent2); font-weight: 600; }
+  .tag-no { color: var(--text-dim); }
+
+  .stat-row { display: flex; gap: 40px; justify-content: center; flex-wrap: wrap; }
+  .stat {
+    text-align: center;
+  }
+  .stat-num {
+    font-size: 3rem; font-weight: 800;
+    background: var(--gradient1); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .stat-label { font-size: 1rem; color: var(--text-dim); margin-top: 4px; }
+
+  .progress-bar {
+    position: fixed; top: 0; left: 0; height: 3px; z-index: 100;
+    background: var(--gradient1); transition: width 0.4s ease;
+  }
+
+  .slide-counter {
+    position: fixed; bottom: 20px; right: 30px;
+    font-size: 0.85rem; color: var(--text-dim); font-weight: 500;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .nav-hint {
+    position: fixed; bottom: 20px; left: 30px;
+    font-size: 0.8rem; color: rgba(255,255,255,0.2);
+  }
+
+  ul { list-style: none; }
+  ul li { position: relative; padding-left: 24px; margin-bottom: 10px; }
+  ul li::before {
+    content: ''; position: absolute; left: 0; top: 10px;
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent);
+  }
+
+  .phone-msgs {
+    display: flex; flex-direction: column; gap: 10px; max-width: 380px;
+  }
+  .msg {
+    padding: 12px 18px; border-radius: 18px 18px 18px 4px;
+    font-size: 1rem; animation: msgIn 0.4s ease both;
+  }
+  .msg:nth-child(1) { background: #2d2d3f; animation-delay: 0.3s; }
+  .msg:nth-child(2) { background: #2d2d3f; animation-delay: 0.8s; }
+  .msg:nth-child(3) { background: #2d2d3f; animation-delay: 1.3s; }
+  .msg:nth-child(4) { background: rgba(255,107,107,0.2); border: 1px solid rgba(255,107,107,0.3); animation-delay: 1.8s; }
+  .msg .sender { font-size: 0.75rem; color: var(--text-dim); margin-bottom: 4px; }
+
+  @keyframes msgIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .sentinel-demo {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%;
+  }
+  .event-card {
+    display: flex; align-items: center; gap: 14px;
+    padding: 16px 20px; border-radius: 12px;
+    background: var(--bg-card); border: 1px solid rgba(255,255,255,0.06);
+  }
+  .event-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; flex-shrink: 0;
+  }
+  .event-silent .event-icon { background: rgba(78,205,196,0.15); }
+  .event-escalate .event-icon { background: rgba(255,107,107,0.15); }
+  .event-info { font-size: 0.9rem; }
+  .event-action { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 3px; }
+  .event-silent .event-action { color: var(--accent); }
+  .event-escalate .event-action { color: var(--accent2); }
+
+  .logo-row {
+    display: flex; gap: 36px; align-items: center; justify-content: center;
+    flex-wrap: wrap; margin-top: 20px;
+  }
+  .logo-item {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    padding: 20px 28px; border-radius: 12px;
+    background: var(--bg-card); border: 1px solid rgba(255,255,255,0.06);
+  }
+  .logo-item .icon { font-size: 2rem; }
+  .logo-item .name { font-size: 0.85rem; font-weight: 600; color: var(--text-dim); }
+
+  .cta-box {
+    margin-top: 30px; padding: 20px 36px; border-radius: 12px;
+    background: rgba(78,205,196,0.08); border: 1px solid rgba(78,205,196,0.2);
+    font-family: 'JetBrains Mono', monospace; font-size: 1rem;
+    color: var(--accent);
+  }
+</style>
+</head>
+<body>
+
+<div class="progress-bar" id="progress"></div>
+<div class="slide-counter" id="counter"></div>
+<div class="nav-hint">Arrow keys or click to navigate</div>
+
+<div class="deck" id="deck">
+
+  <!-- ========== SLIDE 1: TITLE ========== -->
+  <div class="slide active" data-section="0:00">
+    <div style="text-align: center;">
+      <span class="badge badge-teal" style="margin-bottom: 24px;">Good Neighbor Agents</span>
+      <h1 style="margin-bottom: 16px;">
+        RESQ<span class="accent">-</span>Mesh
+      </h1>
+      <p class="dim" style="font-size: 1.4rem; margin-bottom: 40px;">
+        The agent that handles the routine.<br>Humans handle the judgment calls.
+      </p>
+      <p class="dim" style="font-size: 1rem;">
+        Built with <span class="accent">Strands Agents SDK</span> &nbsp;·&nbsp; Amazon Bedrock &nbsp;·&nbsp; OR-Tools CP-SAT
+      </p>
+    </div>
+  </div>
+
+  <!-- ========== SLIDE 2: THE HOOK ========== -->
+  <div class="slide" data-section="0:00 – 0:30">
+    <div class="grid-2" style="align-items: center;">
+      <div>
+        <h2 style="margin-bottom: 20px;">Every week,<br><span class="accent2">the same chaos.</span></h2>
+        <p class="dim" style="font-size: 1.1rem;">
+          60,000 community meal programs across the US rely on volunteer coordination.
+          When someone cancels, coordinators drop everything to reshuffle — for problems that usually have obvious answers.
+        </p>
+      </div>
+      <div class="phone-msgs">
+        <div class="msg"><div class="sender">Maria · 2:14 PM</div>Can't make Thursday, car trouble</div>
+        <div class="msg"><div class="sender">James · 2:31 PM</div>Van 3 won't start — alternator</div>
+        <div class="msg"><div class="sender">Priya · 2:45 PM</div>Who's covering Eastside now?</div>
+        <div class="msg"><div class="sender">You · ???</div>🔥 I need to figure this out in 2 hours</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== SLIDE 3: THE PROBLEM ========== -->
+  <div class="slide" data-section="0:30 – 1:00">
+    <h2 style="margin-bottom: 40px; text-align: center;">The real problem isn't disruptions.<br>It's <span class="accent2">not knowing which ones matter.</span></h2>
+    <div class="grid-2" style="max-width: 900px;">
+      <div class="card" style="border-color: rgba(78,205,196,0.2);">
+        <h3><span style="font-size: 2rem;">90%</span> <span class="accent">Routine</span></h3>
+        <p>A backup exists. The answer is obvious. It just takes time to find it.</p>
+        <p style="margin-top: 12px; font-size: 0.9rem; color: var(--accent);">→ An agent should handle this silently</p>
+      </div>
+      <div class="card" style="border-color: rgba(255,107,107,0.2);">
+        <h3><span style="font-size: 2rem;">10%</span> <span class="accent2">Real Decisions</span></h3>
+        <p>No backup exists. A site might go uncovered. Real people might not eat.</p>
+        <p style="margin-top: 12px; font-size: 0.9rem; color: var(--accent2);">→ A human needs to decide NOW</p>
+      </div>
+    </div>
+    <p class="dim" style="margin-top: 30px; text-align: center; font-size: 1.05rem;">
+      Coordinators can't tell which is which until they've worked through the whole list.
+    </p>
+  </div>
+
+  <!-- ========== SLIDE 4: THE SOLUTION ========== -->
+  <div class="slide" data-section="1:00 – 1:45">
+    <h2 style="margin-bottom: 32px; text-align: center;">RESQ-Mesh: <span class="accent">Four Deterministic Steps</span></h2>
+    <div style="max-width: 800px; width: 100%;">
+      <div class="flow-step">
+        <div class="flow-num" style="background: rgba(78,205,196,0.2); color: var(--accent);">1</div>
+        <div>
+          <strong>Understand</strong> <span class="dim">— Strands Agent extracts structured facts from natural language</span>
+        </div>
+      </div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-step">
+        <div class="flow-num" style="background: rgba(162,155,254,0.2); color: var(--accent4);">2</div>
+        <div>
+          <strong>Decide</strong> <span class="dim">— CP-SAT solver proves feasibility and picks optimal volunteers</span>
+        </div>
+      </div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-step">
+        <div class="flow-num" style="background: rgba(254,202,87,0.2); color: var(--accent3);">3</div>
+        <div>
+          <strong>Stress-test</strong> <span class="dim">— Remove each volunteer, re-solve → know what breaks before it happens</span>
+        </div>
+      </div>
+      <div class="flow-arrow">↓</div>
+      <div class="flow-step">
+        <div class="flow-num" style="background: rgba(255,107,107,0.2); color: var(--accent2);">4</div>
+        <div>
+          <strong>Monitor</strong> <span class="dim">— Sentinel agent watches autonomously: absorb or escalate</span>
+        </div>
+      </div>
+    </div>
+    <p style="margin-top: 28px; text-align: center; font-size: 1.1rem;">
+      The LLM <span class="accent2">interprets</span>. The math <span class="accent">decides</span>.
+    </p>
+  </div>
+
+  <!-- ========== SLIDE 5: TRUST BOUNDARY ========== -->
+  <div class="slide" data-section="1:00 – 1:45">
+    <h2 style="margin-bottom: 32px;">The Trust Boundary</h2>
+    <table class="trust-table" style="max-width: 850px;">
+      <thead>
+        <tr><th>Layer</th><th>Probabilistic?</th><th>Can Allocate?</th><th>Role</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Guardrails</td><td class="tag-no">No</td><td class="tag-no">No</td><td class="dim">Sanitize input</td></tr>
+        <tr><td>LLM Extraction</td><td class="tag-yes">Yes</td><td class="tag-no">No</td><td class="dim">Facts only</td></tr>
+        <tr><td>HITL Review</td><td class="tag-no">No</td><td class="tag-no">No</td><td class="dim">Gate the flow</td></tr>
+        <tr><td>Capability Rules</td><td class="tag-no">No</td><td class="tag-no">No</td><td class="dim">Derive requirements</td></tr>
+        <tr><td><strong>CP-SAT Solver</strong></td><td class="tag-no">No</td><td class="tag-yes">Yes ✓</td><td><span class="accent">Decision authority</span></td></tr>
+        <tr><td>Resilience Engine</td><td class="tag-no">No</td><td class="tag-no">No</td><td class="dim">Stress-test</td></tr>
+        <tr><td>Human Approval</td><td class="tag-no">Human</td><td class="tag-no">Final gate</td><td class="dim">Approve</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top: 24px; font-size: 1.1rem; text-align: center;">
+      Only one layer can allocate resources — and it's <span class="accent">deterministic</span>.
+    </p>
+  </div>
+
+  <!-- ========== SLIDE 6: STRANDS PATTERN 1 ========== -->
+  <div class="slide" data-section="1:45 – 2:45">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
+      <span class="badge badge-teal">Strands SDK</span>
+      <h2>Pattern 1 — Structured Extraction</h2>
+    </div>
+    <pre class="code-block"><span class="kw">from</span> <span class="var">strands</span> <span class="kw">import</span> <span class="fn">Agent</span>
+<span class="kw">from</span> <span class="var">strands.models.bedrock</span> <span class="kw">import</span> <span class="fn">BedrockModel</span>
+
+<span class="var">agent</span> <span class="op">=</span> <span class="fn">Agent</span>(
+    <span class="var">model</span><span class="op">=</span><span class="fn">BedrockModel</span>(<span class="var">model_id</span><span class="op">=</span><span class="str">"us.amazon.nova-lite-v1:0"</span>, <span class="op">...</span>),
+    <span class="var">system_prompt</span><span class="op">=</span><span class="str">"Extract facts only. Never decide."</span>,
+    <span class="var">structured_output_model</span><span class="op">=</span><span class="fn">Mission</span>,   <span class="cm"># Pydantic model → guaranteed schema</span>
+)
+
+<span class="var">result</span> <span class="op">=</span> <span class="var">agent</span>(<span class="str">"We need Thursday coverage at Riverside — van driver, packer, site lead"</span>)
+<span class="var">mission</span> <span class="op">=</span> <span class="var">result</span>.<span class="var">structured_output</span>   <span class="cm"># Mission(destination=..., requirements=[...])</span></pre>
+    <p style="margin-top: 20px; font-size: 1.05rem;">
+      <code>structured_output_model</code> guarantees the LLM returns a valid <code>Mission</code>.<br>
+      <span class="dim">Missing facts are <code>null</code>, not hallucinated.</span>
+    </p>
+  </div>
+
+  <!-- ========== SLIDE 7: STRANDS PATTERN 2 ========== -->
+  <div class="slide" data-section="1:45 – 2:45">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
+      <span class="badge badge-yellow">Strands SDK</span>
+      <h2>Pattern 2 — Tool-Calling Advisor</h2>
+    </div>
+    <pre class="code-block"><span class="var">advisor</span> <span class="op">=</span> <span class="fn">Agent</span>(
+    <span class="var">model</span><span class="op">=</span><span class="fn">BedrockModel</span>(<span class="op">...</span>),
+    <span class="var">system_prompt</span><span class="op">=</span><span class="str">"Never decide yourself. Call tools and report their output."</span>,
+    <span class="var">tools</span><span class="op">=</span>[<span class="fn">assess_incident</span>, <span class="fn">get_available_resources</span>, <span class="fn">get_resources_by_capability</span>],
+)
+
+<span class="cm"># Coordinator asks a plain-English question</span>
+<span class="var">answer</span> <span class="op">=</span> <span class="var">advisor</span>(<span class="str">"Can Riverside Eastside open Thursday?"</span>)
+<span class="cm"># → Agent calls assess_incident → CP-SAT solver runs → plain-English verdict</span></pre>
+    <p style="margin-top: 20px; font-size: 1.05rem;">
+      The <span class="accent3">Advisor</span> is a ReAct agent with 3 tools.<br>
+      <span class="dim">It orchestrates and explains. The deterministic tools decide.</span>
+    </p>
+  </div>
+
+  <!-- ========== SLIDE 8: STRANDS PATTERN 3 ========== -->
+  <div class="slide" data-section="1:45 – 2:45">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
+      <span class="badge badge-red">Strands SDK</span>
+      <h2>Pattern 3 — @tool Decorator</h2>
+    </div>
+    <pre class="code-block"><span class="kw">from</span> <span class="var">strands</span> <span class="kw">import</span> <span class="fn">tool</span>
+
+<span class="dec">@tool</span>
+<span class="kw">def</span> <span class="fn">assess_incident</span>(<span class="var">destination</span>: <span class="fn">str</span>, <span class="var">incident_type</span>: <span class="fn">str</span>, <span class="op">...</span>) <span class="op">-></span> <span class="fn">dict</span>:
+    <span class="str">"""Decide whether a meal site can be covered, and by whom."""</span>
+    <span class="var">mission</span>  <span class="op">=</span> <span class="fn">Mission</span>(<span class="op">...</span>)
+    <span class="var">result</span>   <span class="op">=</span> <span class="fn">run_pipeline</span>(<span class="var">mission</span>, <span class="var">resources</span><span class="op">=</span><span class="fn">list_available_resources</span>(), <span class="op">...</span>)
+    <span class="kw">return</span> {<span class="str">"verdict"</span>: <span class="var">result</span>.<span class="var">verdict</span>, <span class="str">"feasible"</span>: <span class="op">...</span>, <span class="str">"missing"</span>: <span class="op">...</span>}
+
+<span class="dec">@tool</span>
+<span class="kw">def</span> <span class="fn">evaluate_plan_failures</span>(<span class="var">resource_ids</span>: <span class="fn">list</span>[<span class="fn">str</span>], <span class="op">...</span>) <span class="op">-></span> <span class="fn">dict</span>:
+    <span class="str">"""What happens if a volunteer cancels? Counterfactual analysis."""</span>
+    <span class="kw">return</span> <span class="fn">run_counterfactual_analysis</span>(<span class="op">...</span>)</pre>
+    <p style="margin-top: 20px; font-size: 1.05rem;">
+      <span class="accent2">9 tools</span> total — from coalition planning to failure analysis to recovery proposals.<br>
+      <span class="dim">Strands handles schema generation, arg parsing, and result routing.</span>
+    </p>
+  </div>
+
+  <!-- ========== SLIDE 9: THE SENTINEL ========== -->
+  <div class="slide" data-section="2:45 – 4:15">
+    <h2 style="margin-bottom: 12px;">The Silent Deputy</h2>
+    <p class="dim" style="margin-bottom: 28px; font-size: 1.1rem;">Autonomous sentinel — the hackathon theme in action</p>
+    <div class="sentinel-demo">
+      <div class="event-card event-silent">
+        <div class="event-icon">👤</div>
+        <div class="event-info">
+          Maria cancels
+          <div class="event-action">✓ Silent — backup absorbs</div>
+        </div>
+      </div>
+      <div class="event-card event-silent">
+        <div class="event-icon">🚐</div>
+        <div class="event-info">
+          Van capacity reduced
+          <div class="event-action">✓ Silent — still feasible</div>
+        </div>
+      </div>
+      <div class="event-card event-escalate">
+        <div class="event-icon">⚠️</div>
+        <div class="event-info">
+          Only van driver cancels
+          <div class="event-action">⚠ Escalate — no backup driver</div>
+        </div>
+      </div>
+      <div class="event-card event-silent">
+        <div class="event-icon">✅</div>
+        <div class="event-info">
+          New driver recruited
+          <div class="event-action">✓ Resolved — coverage restored</div>
+        </div>
+      </div>
+      <div class="event-card event-silent">
+        <div class="event-icon">📦</div>
+        <div class="event-info">
+          Packer swap
+          <div class="event-action">✓ Silent — auto-recomposed</div>
+        </div>
+      </div>
+      <div class="event-card event-escalate">
+        <div class="event-icon">🔴</div>
+        <div class="event-info">
+          Site lead + packer both cancel
+          <div class="event-action">⚠ Escalate — plan infeasible</div>
+        </div>
+      </div>
+    </div>
+    <p style="margin-top: 24px; text-align: center; font-size: 1.05rem;">
+      <span class="accent">4 silent</span> &nbsp;·&nbsp; <span class="accent2">2 escalated</span> &nbsp;·&nbsp;
+      <span class="dim">Edge-triggered: alerts when things get worse, not on every tick</span>
+    </p>
+  </div>
+
+  <!-- ========== SLIDE 10: LIVE DEMO INTRO ========== -->
+  <div class="slide" data-section="2:45 – 4:15">
+    <h2 style="margin-bottom: 40px;">Live Demo</h2>
+    <div class="grid-3">
+      <div class="card" style="text-align: center;">
+        <h3 class="accent" style="font-size: 2rem; margin-bottom: 8px;">CLI</h3>
+        <pre class="code-block" style="font-size: 0.8rem; text-align: center;">python -m app.cli --demo</pre>
+        <p style="margin-top: 12px;">NL → facts → solver → resilience → verdict</p>
+      </div>
+      <div class="card" style="text-align: center;">
+        <h3 class="accent3" style="font-size: 2rem; margin-bottom: 8px;">Advisor</h3>
+        <pre class="code-block" style="font-size: 0.8rem; text-align: center;">python -m app.advisor</pre>
+        <p style="margin-top: 12px;">Ask questions in English, get operational answers</p>
+      </div>
+      <div class="card" style="text-align: center;">
+        <h3 class="accent2" style="font-size: 2rem; margin-bottom: 8px;">Dashboard</h3>
+        <pre class="code-block" style="font-size: 0.8rem; text-align: center;">uvicorn app.api.server:app</pre>
+        <p style="margin-top: 12px;">Interactive UI with Sentinel replay</p>
+      </div>
+    </div>
+    <p class="dim" style="margin-top: 30px; text-align: center; font-size: 1rem;">
+      ← Switch to terminal / browser recording here →
+    </p>
+  </div>
+
+  <!-- ========== SLIDE 11: IMPACT ========== -->
+  <div class="slide" data-section="4:15 – 4:45">
+    <h2 style="margin-bottom: 40px; text-align: center;">Why It Matters</h2>
+    <div class="stat-row" style="margin-bottom: 40px;">
+      <div class="stat">
+        <div class="stat-num">60K+</div>
+        <div class="stat-label">meal programs in the US</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" style="background: var(--gradient2); -webkit-background-clip: text;">5–10h</div>
+        <div class="stat-label">saved per coordinator per week</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" style="background: var(--gradient3); -webkit-background-clip: text;">90%</div>
+        <div class="stat-label">of disruptions handled silently</div>
+      </div>
+    </div>
+    <div class="grid-2" style="max-width: 800px;">
+      <div>
+        <h3 style="margin-bottom: 12px;">What makes it different</h3>
+        <ul>
+          <li>Decisions by <span class="accent">mathematical proof</span>, not LLM guesswork</li>
+          <li>Every plan <span class="accent3">stress-tested</span> before deployment</li>
+          <li>Runs in the <span class="accent4">background</span> — no app to manage</li>
+          <li>Humans paged <span class="accent2">only when it matters</span></li>
+        </ul>
+      </div>
+      <div>
+        <h3 style="margin-bottom: 12px;">Not a chatbot</h3>
+        <p class="dim" style="font-size: 1rem;">
+          This isn't a chatbot that suggests volunteers. It's an autonomous agent that <em>proves</em> coverage,
+          <em>proves</em> what would break it, and only calls a human when the math says it has to.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== SLIDE 12: TECH STACK ========== -->
+  <div class="slide" data-section="4:45 – 5:00">
+    <h2 style="margin-bottom: 32px; text-align: center;">Built With</h2>
+    <div class="logo-row">
+      <div class="logo-item">
+        <div class="icon">🧬</div>
+        <div class="name">Strands SDK</div>
+      </div>
+      <div class="logo-item">
+        <div class="icon">🪨</div>
+        <div class="name">Amazon Bedrock</div>
+      </div>
+      <div class="logo-item">
+        <div class="icon">🔧</div>
+        <div class="name">OR-Tools CP-SAT</div>
+      </div>
+      <div class="logo-item">
+        <div class="icon">🕸️</div>
+        <div class="name">HyperNetX</div>
+      </div>
+      <div class="logo-item">
+        <div class="icon">⚡</div>
+        <div class="name">FastAPI</div>
+      </div>
+      <div class="logo-item">
+        <div class="icon">🐳</div>
+        <div class="name">Docker</div>
+      </div>
+    </div>
+    <div style="margin-top: 40px; text-align: center;">
+      <div class="stat-row" style="margin-bottom: 24px;">
+        <div class="stat">
+          <div class="stat-num" style="font-size: 2rem;">9,700</div>
+          <div class="stat-label">lines of code</div>
+        </div>
+        <div class="stat">
+          <div class="stat-num" style="font-size: 2rem; background: var(--gradient2); -webkit-background-clip: text;">7,200</div>
+          <div class="stat-label">lines of tests</div>
+        </div>
+        <div class="stat">
+          <div class="stat-num" style="font-size: 2rem; background: var(--gradient3); -webkit-background-clip: text;">9</div>
+          <div class="stat-label">Strands tools</div>
+        </div>
+        <div class="stat">
+          <div class="stat-num" style="font-size: 2rem; background: linear-gradient(135deg, #a29bfe, #6c5ce7); -webkit-background-clip: text;">27</div>
+          <div class="stat-label">test modules</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== SLIDE 13: CLOSING ========== -->
+  <div class="slide" data-section="4:45 – 5:00">
+    <div style="text-align: center;">
+      <h1 style="margin-bottom: 20px;">
+        RESQ<span class="accent">-</span>Mesh
+      </h1>
+      <p style="font-size: 1.4rem; margin-bottom: 12px;">
+        The LLM <span class="accent2">interprets</span>. The math <span class="accent">decides</span>.
+      </p>
+      <p class="dim" style="font-size: 1.15rem; margin-bottom: 40px;">
+        Because the best agent is the one you never notice — until you need it.
+      </p>
+      <div class="cta-box">
+        github.com/&lt;your-username&gt;/resq-mesh
+      </div>
+      <p class="dim" style="margin-top: 24px; font-size: 0.95rem;">
+        Good Neighbor Agents &nbsp;·&nbsp; Agents for Humans Hackathon &nbsp;·&nbsp; 2026
+      </p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  function show(index) {
+    if (index < 0 || index >= slides.length) return;
+    slides[current].classList.remove('active');
+    slides[current].classList.add('exit');
+    setTimeout(() => slides[current === index ? current : (current)].classList.remove('exit'), 500);
+    current = index;
+    slides[current].classList.add('active');
+    progress.style.width = ((current + 1) / slides.length * 100) + '%';
+    counter.textContent = `${current + 1} / ${slides.length}`;
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Enter') { e.preventDefault(); show(current + 1); }
+    if (e.key === 'ArrowLeft' || e.key === 'Backspace') { e.preventDefault(); show(current - 1); }
+    if (e.key === 'Home') { e.preventDefault(); show(0); }
+    if (e.key === 'End') { e.preventDefault(); show(slides.length - 1); }
+  });
+
+  document.addEventListener('click', e => {
+    if (e.clientX > window.innerWidth / 2) show(current + 1);
+    else show(current - 1);
+  });
+
+  // Touch support
+  let touchStartX = 0;
+  document.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].screenX - touchStartX;
+    if (dx < -50) show(current + 1);
+    if (dx > 50) show(current - 1);
+  });
+
+  // Init
+  show(0);
+</script>
+
+</body>
+</html>

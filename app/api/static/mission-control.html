@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MealMesh — Mission Control</title>
+  <link rel="stylesheet" href="/static/vendor/leaflet.css" />
+  <link rel="stylesheet" href="/static/styles.css" />
+  <link rel="stylesheet" href="/static/mission-control.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">◈</div>
+      <div>
+        <h1>MealMesh</h1>
+        <p class="tagline">Mission Control · <span class="sim">SIMULATED DATA</span></p>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <a href="/" class="btn btn-ghost btn-sm">← Dashboard</a>
+      <div class="verdict mc-verdict" id="mcVerdict" data-state="muted">
+        <span class="verdict-label">Status</span>
+        <span class="verdict-value" id="mcVerdictValue">LOADING</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mission header strip -->
+  <div class="mc-header" id="mcHeader">
+    <div class="mc-h-item">
+      <span class="mc-h-label">Deadline</span>
+      <span class="mc-h-value" id="mcDeadline">—</span>
+    </div>
+    <div class="mc-h-item">
+      <span class="mc-h-label">Plan</span>
+      <span class="mc-h-value" id="mcPlanStatus">—</span>
+    </div>
+    <div class="mc-h-item">
+      <span class="mc-h-label">Roles</span>
+      <span class="mc-h-value" id="mcRoles">—</span>
+    </div>
+    <div class="mc-h-item">
+      <span class="mc-h-label">At Risk</span>
+      <span class="mc-h-value" id="mcAtRisk">—</span>
+    </div>
+    <div class="mc-h-item mc-h-wide">
+      <span class="mc-h-label">Recovery Tests</span>
+      <span class="mc-h-value mc-h-recovery" id="mcRecovery">—</span>
+    </div>
+  </div>
+
+  <main class="mc-layout">
+    <!-- LEFT: Mission tasks & assignments -->
+    <section class="mc-panel mc-col-left" id="mcTaskPanel">
+      <div class="mc-card">
+        <h2>Mission Tasks <span class="sub" id="mcMissionLabel">—</span></h2>
+        <div id="mcTasks" class="mc-tasks"></div>
+      </div>
+
+      <div class="mc-card">
+        <h2>Failure Simulation <span class="sub">SIMULATION ONLY</span></h2>
+        <p class="mc-hint">Select a volunteer to simulate removal. This does not affect live state.</p>
+        <div id="mcSimControls" class="mc-sim-controls"></div>
+        <div class="mc-sim-actions">
+          <button id="mcSimBtn" class="btn btn-sim" type="button" disabled>Simulate Removal</button>
+          <button id="mcSimReset" class="btn btn-ghost btn-sm" type="button">Reset</button>
+        </div>
+        <div id="mcSimResult" class="mc-sim-result" hidden></div>
+      </div>
+
+      <div class="mc-card mc-timeline-card">
+        <h2>Event Timeline <span class="sub">compact</span></h2>
+        <div id="mcTimeline" class="mc-timeline">
+          <div class="mc-tl-empty">No events yet</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CENTER: Map -->
+    <section class="mc-panel mc-col-map">
+      <div id="mcMap"></div>
+      <div class="map-vignette" aria-hidden="true"></div>
+      <div class="map-hud" id="mcMapHud">
+        <div class="map-hud-region" id="mcMapRegion"></div>
+        <div class="map-hud-live"><span class="live-dot"></span>MISSION CONTROL</div>
+      </div>
+      <div class="map-status" id="mcMapStatus">
+        <div class="ms-dest">
+          <span class="ms-k">Mission</span>
+          <span class="ms-v" id="mcMapDest">—</span>
+        </div>
+        <div class="ms-chip" id="mcMapChip" data-state="muted">LOADING</div>
+        <div class="ms-meta" id="mcMapMeta">Initializing…</div>
+      </div>
+      <div class="mc-map-legend" id="mcMapLegend"></div>
+    </section>
+
+    <!-- RIGHT: Recovery drawer -->
+    <section class="mc-panel mc-col-right" id="mcRightPanel">
+      <div class="mc-card">
+        <h2>Counterfactual Analysis <span class="sub">what-if</span></h2>
+        <div id="mcCounterfactual" class="mc-cf-list"></div>
+      </div>
+
+      <div class="mc-card" id="mcRecoveryCard" hidden>
+        <h2>Recovery Proposal <span class="sub mc-recovery-status" id="mcRecoveryStatus">—</span></h2>
+        <div id="mcRecoveryContent" class="mc-recovery-content"></div>
+        <div class="mc-recovery-actions" id="mcRecoveryActions" hidden>
+          <button id="mcCompareBtn" class="btn btn-ghost btn-sm" type="button">Compare</button>
+          <button id="mcApproveBtn" class="btn btn-sm" type="button">Approve</button>
+          <button id="mcRejectBtn" class="btn btn-ghost btn-sm mc-btn-reject" type="button">Reject</button>
+        </div>
+      </div>
+
+      <div class="mc-card">
+        <h2>SPOFs <span class="sub">single points of failure</span></h2>
+        <div id="mcSpofs" class="mc-spof-list">
+          <div class="mc-tl-empty">Analyzing…</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="/static/vendor/leaflet.js"></script>
+  <script src="/static/mission-control.js"></script>
+</body>
+</html>
